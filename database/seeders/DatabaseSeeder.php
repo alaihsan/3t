@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Student;
 use App\Models\Classroom;
 use App\Models\CustomLabel;
+use App\Models\CorrectionLabel;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -108,6 +109,27 @@ class DatabaseSeeder extends Seeder
                 $students[rand(0, 3)]->id,
                 $students[rand(4, 7)]->id
             ]);
+        }
+
+        // 4. Seed default CorrectionLabels for teachers
+        $defaultLabels = [
+            ['name' => 'Makhraj', 'color' => 'merah'],
+            ['name' => 'Tajwid', 'color' => 'kuning'],
+            ['name' => 'Lancar', 'color' => 'hijau'],
+            ['name' => 'Sifat Huruf', 'color' => 'biru'],
+            ['name' => 'Waqaf & Ibtida\'', 'color' => 'orange'],
+            ['name' => 'Dengung', 'color' => 'ungu'],
+            ['name' => 'Kurang Lancar', 'color' => 'hitam'],
+        ];
+
+        foreach ($teachers as $teacherId) {
+            foreach ($defaultLabels as $lbl) {
+                CorrectionLabel::create([
+                    'teacher_id' => $teacherId,
+                    'name' => $lbl['name'],
+                    'color' => $lbl['color'],
+                ]);
+            }
         }
     }
 }

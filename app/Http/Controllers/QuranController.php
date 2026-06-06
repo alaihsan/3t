@@ -56,10 +56,16 @@ class QuranController extends Controller
             ->orderBy('name')
             ->get();
 
+        // Fetch custom correction labels for this teacher
+        $correctionLabels = \App\Models\CorrectionLabel::where('teacher_id', auth()->id())
+            ->orderBy('name')
+            ->get();
+
         return Inertia::render('quran/show', [
             'chapter' => $currentChapter,
             'verses' => $verses,
             'classrooms' => $classrooms,
+            'correctionLabels' => $correctionLabels,
             'chapters' => $chapters, // For side quick-navigation
         ]);
     }

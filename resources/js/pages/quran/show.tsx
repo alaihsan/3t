@@ -54,10 +54,17 @@ interface Verse {
     }[];
 }
 
+interface CorrectionLabel {
+    id: number;
+    name: string;
+    color: string;
+}
+
 interface QuranShowProps {
     chapter: Chapter;
     verses: Verse[];
     classrooms: Classroom[];
+    correctionLabels: CorrectionLabel[];
     chapters: Chapter[];
 }
 
@@ -196,7 +203,23 @@ function StudentClassSelect({ value, onChange, options, placeholder }: StudentCl
     );
 }
 
-export default function QuranShow({ chapter, verses = [], classrooms = [], chapters = [] }: QuranShowProps) {
+const labelColors: Record<string, string> = {
+    merah: 'bg-red-50 dark:bg-red-950/30 text-red-800 dark:text-red-300 border-red-200 dark:border-red-900/50',
+    kuning: 'bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-900/50',
+    hijau: 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/50',
+    hitam: 'bg-neutral-50 dark:bg-neutral-900 text-neutral-800 dark:text-neutral-300 border-neutral-200 dark:border-neutral-800',
+    biru: 'bg-blue-50 dark:bg-blue-950/30 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-900/50',
+    orange: 'bg-orange-50 dark:bg-orange-950/30 text-orange-850 dark:text-orange-300 border-orange-200 dark:border-orange-900/50',
+    ungu: 'bg-purple-50 dark:bg-purple-950/30 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-900/50',
+};
+
+export default function QuranShow({ 
+    chapter, 
+    verses = [], 
+    classrooms = [], 
+    correctionLabels = [], 
+    chapters = [] 
+}: QuranShowProps) {
     const [selectedClassroomId, setSelectedClassroomId] = useState<string>(() => {
         if (typeof window !== 'undefined') {
             return new URLSearchParams(window.location.search).get('classroom_id') || '';
@@ -583,35 +606,38 @@ export default function QuranShow({ chapter, verses = [], classrooms = [], chapt
                                 )}
                             </div>
 
-                            {/* Custom Labels (for Takhasus and Tahsin classes) */}
-                            {activeClassroom && (activeClassroom.type === 'Takhasus' || activeClassroom.type === 'Tahsin') && (
-                                <div className="space-y-2">
-                                    <Label className="text-xs text-neutral-400">Pilih Label Penilaian ({activeClassroom.type})</Label>
-                                    <div className="grid grid-cols-2 gap-2 bg-neutral-50/50 dark:bg-neutral-950/20 p-2.5 rounded-xl border border-neutral-100 dark:border-neutral-800">
-                                        {activeClassroom.custom_labels.map((label) => {
-                                            const isChecked = selectedLabels.includes(label.name);
-                                            return (
-                                                <div key={label.id} className="flex items-center space-x-2.5">
-                                                    <Checkbox
-                                                        id={`label-${label.id}`}
-                                                        checked={isChecked}
-                                                        onCheckedChange={(checked) => handleLabelChange(label.name, checked === true)}
-                                                        className="border-neutral-300 dark:border-neutral-700 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
-                                                    />
-                                                    <Label htmlFor={`label-${label.id}`} className="text-xs text-neutral-700 dark:text-neutral-300 cursor-pointer font-medium truncate">
-                                                        {label.name}
-                                                    </Label>
-                                                </div>
-                                            );
-                                        })}
-                                        {activeClassroom.custom_labels.length === 0 && (
-                                            <p className="col-span-2 text-[10px] text-neutral-400 italic">
-                                                Belum ada label custom yang ditambahkan untuk kelas ini. Tambahkan di menu Kelas.
-                                            </p>
-                                        )}
-                                    </div>
+                            {/* Correction Labels */}
+                            <div className="space-y-2">
+                                <Label className="text-xs text-neutral-400">Pilih Label Penilaian (Pendukung Komentar)</Label>
+                                <div className="grid grid-cols-2 gap-2 bg-neutral-50/50 dark:bg-neutral-950/20 p-2.5 rounded-xl border border-neutral-100 dark:border-neutral-800 max-h-36 overflow-y-auto">
+                                    {correctionLabels.map((label) => {
+                                        const isChecked = selectedLabels.includes(label.name);
+                                        const colorClass = labelColors[label.color] || labelColors['hitam'];
+                                        return (
+                                            <div key={label.id} className="flex items-center space-x-2">
+                                                <Checkbox
+                                                    id={`label-${label.id}`}
+                                                    checked={isChecked}
+                                                    onCheckedChange={(checked) => handleLabelChange(label.name, checked === true)}
+                                                    className="border-neutral-300 dark:border-neutral-700 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
+                                                />
+                                                <Label 
+                                                    htmlFor={`label-${label.id}`} 
+                                                    className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border ${colorClass} cursor-pointer truncate max-w-[140px]`}
+                                                    title={label.name}
+                                                >
+                                                    {label.name}
+                                                </Label>
+                                            </div>
+                                        );
+                                    })}
+                                    {correctionLabels.length === 0 && (
+                                        <p className="col-span-2 text-[10px] text-neutral-400 italic">
+                                            Belum ada label koreksi yang ditambahkan. Tambahkan di menu Pengaturan Label.
+                                        </p>
+                                    )}
                                 </div>
-                            )}
+                            </div>
 
                             {/* Comment Text Area */}
                             <div className="space-y-1.5">

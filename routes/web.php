@@ -4,6 +4,7 @@ use App\Http\Controllers\QuranController;
 use App\Http\Controllers\ClassroomController;
 use App\Http\Controllers\ReadingHistoryController;
 use App\Http\Controllers\SuggestionController;
+use App\Http\Controllers\CorrectionLabelController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -68,6 +69,12 @@ Route::middleware(['auth'])->group(function () {
     Route::get('documentation', function () {
         return Inertia::render('documentation/index');
     })->name('documentation.index');
+
+    // Pengaturan Label CRUD
+    Route::get('correction-labels', [CorrectionLabelController::class, 'index'])->name('correction-labels.index');
+    Route::post('correction-labels', [CorrectionLabelController::class, 'store'])->name('correction-labels.store');
+    Route::put('correction-labels/{label}', [CorrectionLabelController::class, 'update'])->name('correction-labels.update');
+    Route::delete('correction-labels/{label}', [CorrectionLabelController::class, 'destroy'])->name('correction-labels.destroy');
 });
 
 require __DIR__.'/settings.php';

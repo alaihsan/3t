@@ -1,7 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BookOpen, Users, History, GraduationCap, ChevronRight, LayoutGrid, Search, BookOpenCheck, School } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -44,6 +44,39 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
+const QURAN_QUOTES = [
+    "\"Sebaik-baik kalian adalah orang yang belajar Al-Qur'an dan mengajarkannya.\" (HR. Bukhari)",
+    "\"Orang yang mahir membaca Al-Qur'an bersama malaikat yang mulia lagi taat.\" (HR. Bukhari & Muslim)",
+    "\"Bacalah Al-Qur'an, karena ia akan datang pada hari kiamat sebagai syafaat bagi pembacanya.\" (HR. Muslim)",
+    "\"Barangsiapa membaca satu huruf dari Kitabullah, maka baginya satu kebaikan dan dilipatgandakan sepuluh kali.\" (HR. Tirmidzi)",
+    "\"Perumpamaan mukmin yang membaca Al-Qur'an laksana buah utrujjah, baunya harum dan rasanya manis.\" (HR. Bukhari & Muslim)",
+    "\"Akan dikatakan kepada pembaca Al-Qur'an: Bacalah, naiklah, dan tartilkanlah sebagaimana di dunia.\" (HR. Abu Dawud)",
+    "\"Tidaklah suatu kaum berkumpul di rumah Allah membaca Al-Qur'an melainkan turun ketenangan dan rahmat.\" (HR. Muslim)",
+    "\"Barangsiapa yang mempelajari Al-Qur'an di kala muda, maka Al-Qur'an akan menyatu dengan darah dan dagingnya.\" (Atsar Sahabat)",
+    "\"Sesungguhnya Allah mengangkat derajat beberapa kaum dengan Al-Qur'an ini dan merendahkan kaum yang lain.\" (HR. Muslim)",
+    "\"Mempelajari dan mengajarkan Al-Qur'an adalah perniagaan yang tidak akan pernah merugi.\" (QS. Fatir: 29-30)",
+    "\"Barangsiapa menginginkan dunia maka dengan ilmu, barangsiapa menginginkan akhirat maka dengan ilmu Al-Qur'an.\" (Atsar)",
+    "\"Penuntut ilmu Al-Qur'an senantiasa didoakan kebaikan oleh para malaikat hingga ikan di lautan.\" (HR. Tirmidzi)",
+    "\"Hati yang di dalamnya tidak ada sedikit pun dari Al-Qur'an ibarat rumah yang runtuh.\" (HR. Tirmidzi)",
+    "\"Sebaik-baik kesibukan di dunia ini adalah menyibukkan diri dengan mempelajari wahyu Allah Ta'ala.\" (Imam Asy-Syafii)",
+    "\"Dua hal yang boleh dicemburui: seseorang yang dianugerahi Al-Qur'an lalu ia mengamalkannya siang dan malam.\" (HR. Bukhari)",
+    "\"Orang tua yang anaknya mempelajari Al-Qur'an akan dipakaikan mahkota cahaya di hari kiamat.\" (HR. Abu Dawud)",
+    "\"Membaca Al-Qur'an dengan tadabbur adalah obat paling mujarab untuk membersihkan kotoran di dalam hati.\" (Ibnu Qayyim)",
+    "\"Siapa yang menempuh jalan untuk mencari ilmu (Al-Qur'an), Allah akan mudahkan baginya jalan menuju surga.\" (HR. Muslim)",
+    "\"Penghafal Al-Qur'an adalah keluarga Allah di bumi (Ahlullah wa Khassatuh).\" (HR. Ahmad & Ibnu Majah)",
+    "\"Setiap ayat yang dipelajari dan dibaca bernilai lebih baik daripada unta yang gemuk dan mewah.\" (HR. Muslim)",
+    "\"Mempelajari satu ayat Al-Qur'an lebih baik bagimu daripada shalat sunnah seratus rakaat.\" (HR. Ibnu Majah)",
+    "\"Sesungguhnya Al-Qur'an ini adalah jamuan Allah, maka terimalah jamuan-Nya dengan segenap kemampuanmu.\" (HR. Hakim)",
+    "\"Al-Qur'an adalah cahaya di bumi dan simpanan pahala yang sangat berharga untukmu di langit.\" (HR. Ibnu Hibban)",
+    "\"Tidak ada penenang jiwa yang paling indah selain melantunkan bait-bait suci kalamullah.\" (Utsman bin Affan)",
+    "\"Barangsiapa yang disibukkan oleh Al-Qur'an hingga lupa meminta kepada-Ku, maka Aku beri pemberian terbaik.\" (Hadits Qudsi)",
+    "\"Al-Qur'an adalah tali Allah yang kokoh, cahaya yang terang, dan penawar yang sangat mujarab.\" (HR. Al-Hakim)",
+    "\"Cintailah Al-Qur'an, niscaya Allah dan seluruh makhluk di langit serta bumi akan mencintaimu.\" (Sufyan Ats-Tsauri)",
+    "\"Barangsiapa mengamalkan apa yang ada di dalam Al-Qur'an, maka Al-Qur'an akan menuntunnya menuju surga.\" (HR. Ibnu Hibban)",
+    "\"Sibukkanlah lisan dan hatimu dengan Al-Qur'an agar tidak ada celah bagi dunia untuk merusakmu.\" (Fudhail bin Iyadh)",
+    "\"Mempelajari Al-Qur'an adalah kunci utama untuk meraih keberkahan hidup di dunia dan keselamatan di akhirat.\" (Atsar)"
+];
+
 export default function Dashboard({ 
     classCount = 0, 
     studentCount = 0, 
@@ -54,6 +87,32 @@ export default function Dashboard({
 }: DashboardProps) {
     const { auth } = usePage<SharedData>().props;
     const teacherName = auth.user?.name || 'Ustadz';
+
+    // Quotes Typing and Rotation Logic
+    const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
+    const [displayedText, setDisplayedText] = useState('');
+
+    useEffect(() => {
+        const quoteTimer = setInterval(() => {
+            setCurrentQuoteIndex((prev) => (prev + 1) % QURAN_QUOTES.length);
+        }, 15000);
+        return () => clearInterval(quoteTimer);
+    }, []);
+
+    useEffect(() => {
+        let index = 0;
+        setDisplayedText('');
+        const activeQuote = QURAN_QUOTES[currentQuoteIndex];
+        const typingTimer = setInterval(() => {
+            if (index < activeQuote.length) {
+                setDisplayedText((prev) => prev + activeQuote.charAt(index));
+                index++;
+            } else {
+                clearInterval(typingTimer);
+            }
+        }, 30);
+        return () => clearInterval(typingTimer);
+    }, [currentQuoteIndex]);
 
     // Google Search logic
     const [searchQuery, setSearchQuery] = useState('');
@@ -280,14 +339,17 @@ export default function Dashboard({
                     <div className="relative z-10 space-y-2">
                         <span className="text-amber-400 text-xs font-bold uppercase tracking-widest flex items-center gap-1.5">
                             <GraduationCap className="h-4 w-4" />
-                            Selamat Datang, Guru
+                            Selamat Datang
                         </span>
                         <h1 className="text-3xl font-extrabold tracking-tight">
                             {teacherName}
                         </h1>
-                        <p className="text-emerald-100/80 max-w-xl text-sm leading-relaxed">
-                            Aplikasi **3T** siap membantu Anda dalam memantau, membimbing, dan mencatat kemajuan bacaan Al-Qur'an murid Anda untuk program **Takhasus**, **Tahsin**, dan **Tahfizh**.
-                        </p>
+                        <div className="text-emerald-100/90 max-w-2xl text-sm leading-relaxed min-h-[3rem] md:min-h-[2.5rem] flex items-center">
+                            <p className="italic font-medium">
+                                {displayedText}
+                                <span className="inline-block w-1.5 h-4 ml-1 bg-amber-400 animate-pulse align-middle" />
+                            </p>
+                        </div>
                     </div>
                 </div>
 

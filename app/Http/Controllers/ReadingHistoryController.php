@@ -50,9 +50,15 @@ class ReadingHistoryController extends Controller
             ->orderBy('name')
             ->get();
 
+        // Get correction labels for color mapping
+        $correctionLabels = \App\Models\CorrectionLabel::where('teacher_id', auth()->id())
+            ->orderBy('name')
+            ->get();
+
         return Inertia::render('reading-histories/index', [
             'histories' => $histories,
             'classrooms' => $classrooms,
+            'correctionLabels' => $correctionLabels,
             'filters' => $request->only(['search', 'classroom_id', 'type']),
         ]);
     }

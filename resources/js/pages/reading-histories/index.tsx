@@ -37,9 +37,16 @@ interface ReadingLog {
     classroom: Classroom;
 }
 
+interface CorrectionLabel {
+    id: number;
+    name: string;
+    color: string;
+}
+
 interface ReadingHistoryIndexProps {
     histories: ReadingLog[];
     classrooms: Classroom[];
+    correctionLabels: CorrectionLabel[];
     filters: {
         search?: string;
         classroom_id?: string;
@@ -59,7 +66,22 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function ReadingHistoryIndex({ histories = [], classrooms = [], filters = {} }: ReadingHistoryIndexProps) {
+const labelColors: Record<string, string> = {
+    merah: 'bg-red-50 dark:bg-red-950/30 text-red-800 dark:text-red-300 border-red-200 dark:border-red-900/50',
+    kuning: 'bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-900/50',
+    hijau: 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/50',
+    hitam: 'bg-neutral-50 dark:bg-neutral-900 text-neutral-800 dark:text-neutral-300 border-neutral-200 dark:border-neutral-800',
+    biru: 'bg-blue-50 dark:bg-blue-950/30 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-900/50',
+    orange: 'bg-orange-50 dark:bg-orange-950/30 text-orange-850 dark:text-orange-300 border-orange-200 dark:border-orange-900/50',
+    ungu: 'bg-purple-50 dark:bg-purple-950/30 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-900/50',
+};
+
+export default function ReadingHistoryIndex({ 
+    histories = [], 
+    classrooms = [], 
+    correctionLabels = [], 
+    filters = {} 
+}: ReadingHistoryIndexProps) {
     const [searchVal, setSearchVal] = useState(filters.search || '');
     const [classroomVal, setClassroomVal] = useState(filters.classroom_id || 'all');
     const [typeVal, setTypeVal] = useState(filters.type || 'all');
@@ -395,11 +417,15 @@ export default function ReadingHistoryIndex({ histories = [], classrooms = [], f
                                                 {log.labels && log.labels.length > 0 && (
                                                     <div className="flex flex-wrap items-center gap-1.5 text-xs">
                                                         <Tag className="h-3.5 w-3.5 text-neutral-400 shrink-0" />
-                                                        {log.labels.map((lbl, idx) => (
-                                                            <span key={idx} className="text-[10px] font-medium px-2 py-0.5 bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 rounded-lg border border-neutral-200/80 dark:border-neutral-700">
-                                                                {lbl}
-                                                            </span>
-                                                        ))}
+                                                        {log.labels.map((lbl, idx) => {
+                                                            const match = correctionLabels.find(c => c.name.toLowerCase() === lbl.toLowerCase());
+                                                            const colorClass = match ? (labelColors[match.color] || labelColors['hitam']) : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 border-neutral-250 dark:border-neutral-700';
+                                                            return (
+                                                                <span key={idx} className={`text-[10px] font-semibold px-2 py-0.5 rounded-lg border ${colorClass}`}>
+                                                                    {lbl}
+                                                                </span>
+                                                            );
+                                                        })}
                                                     </div>
                                                 )}
 
