@@ -18,10 +18,24 @@ class ClassroomController extends Controller
     public function index(): Response
     {
         $classrooms = Classroom::where('teacher_id', auth()->id())
-            ->with(['students', 'customLabels'])
+            ->with(['students.goals' => function ($query) {
+                $query->where('created_by', auth()->id());
+            }, 'customLabels'])
             ->withCount('students')
             ->orderBy('name')
             ->get();
+
+        // Calculate progress for each student's goals
+        foreach ($classrooms as $classroom) {
+            foreach ($classroom->students as $student) {
+                foreach ($student->goals as $goal) {
+                    $progressData = $goal->getProgressData();
+                    $goal->total_verses_count = $progressData['total_verses_count'];
+                    $goal->logged_verses_count = $progressData['logged_verses_count'];
+                    $goal->progress_percentage = $progressData['progress_percentage'];
+                }
+            }
+        }
 
         return Inertia::render('classrooms/index', [
             'classrooms' => $classrooms

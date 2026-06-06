@@ -108,7 +108,7 @@ class QuranService
                     'x-client-id' => $this->clientId,
                 ])->get("{$this->apiUrl}/content/api/v4/verses/by_chapter/{$chapterNumber}", [
                     'translations' => 33,
-                    'fields' => 'text_uthmani',
+                    'fields' => 'text_uthmani,text_uthmani_tajweed',
                     'per_page' => $perPage
                 ]);
 

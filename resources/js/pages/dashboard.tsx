@@ -2,7 +2,7 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
-import { BookOpen, Users, History, GraduationCap, ChevronRight, LayoutGrid, Search, BookOpenCheck, School } from 'lucide-react';
+import { BookOpen, Users, History, GraduationCap, ChevronRight, LayoutGrid, Search, BookOpenCheck, School, Tag } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface Student {
@@ -35,7 +35,153 @@ interface DashboardProps {
     classrooms: Classroom[];
     students: Student[];
     chapters: Chapter[];
+    weeklyActivity?: { day: string; count: number }[];
+    labelDistribution?: { name: string; color: string; count: number }[];
+    activeGoals?: any[];
 }
+
+const BarChart = ({ data = [] }: { data: { day: string; count: number }[] }) => {
+    const maxVal = Math.max(...data.map(d => d.count), 5); // Fallback to 5
+    const chartHeight = 110;
+    const paddingBottom = 20;
+    const width = 320;
+    const barWidth = 20;
+    const gap = 18;
+
+    return (
+        <div className="w-full flex flex-col items-center">
+            <svg viewBox={`0 0 ${width} ${chartHeight + paddingBottom}`} className="w-full max-w-sm h-32">
+                {data.map((item, idx) => {
+                    const x = idx * (barWidth + gap) + 32;
+                    const barHeight = (item.count / maxVal) * chartHeight;
+                    const y = chartHeight - barHeight;
+                    return (
+                        <g key={idx} className="group cursor-pointer">
+                            <title>{`${item.count} catatan`}</title>
+                            <rect
+                                x={x}
+                                y={y}
+                                width={barWidth}
+                                height={barHeight}
+                                rx={3}
+                                className="fill-emerald-600 dark:fill-emerald-500 hover:fill-emerald-550 transition duration-200"
+                            />
+                            <text
+                                x={x + barWidth / 2}
+                                y={y - 4}
+                                textAnchor="middle"
+                                className="text-[9px] font-bold fill-neutral-700 dark:fill-neutral-300 opacity-0 group-hover:opacity-100 transition duration-200"
+                            >
+                                {item.count}
+                            </text>
+                            <text
+                                x={x + barWidth / 2}
+                                y={chartHeight + 12}
+                                textAnchor="middle"
+                                className="text-[9px] font-semibold fill-neutral-400 dark:fill-neutral-500"
+                            >
+                                {item.day}
+                            </text>
+                        </g>
+                    );
+                })}
+                <line
+                    x1="15"
+                    y1={chartHeight}
+                    x2={width - 15}
+                    y2={chartHeight}
+                    className="stroke-neutral-200 dark:stroke-neutral-800"
+                    strokeWidth="1"
+                />
+            </svg>
+        </div>
+    );
+};
+
+const DonutChart = ({ data = [] }: { data: { name: string; color: string; count: number }[] }) => {
+    const total = data.reduce((acc, d) => acc + d.count, 0);
+    const radius = 30;
+    const circ = 2 * Math.PI * radius; // ~188.5
+    const strokeWidth = 8;
+    const viewSize = 80;
+    const center = viewSize / 2;
+
+    const labelColors: Record<string, string> = {
+        merah: '#ef4444',
+        kuning: '#f59e0b',
+        hijau: '#10b981',
+        hitam: '#6b7280',
+        biru: '#3b82f6',
+        orange: '#f97316',
+        ungu: '#8b5cf6',
+    };
+
+    let accumulatedPercentage = 0;
+
+    return (
+        <div className="flex flex-col sm:flex-row items-center gap-4 justify-center w-full">
+            {total > 0 ? (
+                <>
+                    <div className="relative h-24 w-24 shrink-0">
+                        <svg viewBox={`0 0 ${viewSize} ${viewSize}`} className="w-full h-full transform -rotate-90">
+                            {data.map((item, idx) => {
+                                if (item.count === 0) return null;
+                                const pct = item.count / total;
+                                const strokeLength = pct * circ;
+                                const strokeOffset = circ - strokeLength;
+                                const dashOffset = (accumulatedPercentage / 100) * circ;
+                                accumulatedPercentage += pct * 100;
+                                
+                                const colorHex = labelColors[item.color] || '#6b7280';
+
+                                return (
+                                    <circle
+                                        key={idx}
+                                        cx={center}
+                                        cy={center}
+                                        r={radius}
+                                        fill="transparent"
+                                        stroke={colorHex}
+                                        strokeWidth={strokeWidth}
+                                        strokeDasharray={circ}
+                                        strokeDashoffset={-dashOffset}
+                                        className="transition-all duration-300 hover:stroke-[10px]"
+                                        title={`${item.name}: ${item.count} (${Math.round(pct * 100)}%)`}
+                                    />
+                                );
+                            })}
+                            <circle
+                                cx={center}
+                                cy={center}
+                                r={radius - strokeWidth / 2}
+                                className="fill-white dark:fill-neutral-900"
+                            />
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none">
+                            <span className="text-[8px] text-neutral-400 dark:text-neutral-500 font-bold uppercase tracking-wider">Total</span>
+                            <span className="text-sm font-extrabold text-neutral-800 dark:text-neutral-200 leading-none mt-0.5">{total}</span>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5 text-[10px] flex-1">
+                        {data.map((item, idx) => {
+                            if (item.count === 0) return null;
+                            const colorHex = labelColors[item.color] || '#6b7280';
+                            return (
+                                <div key={idx} className="flex items-center gap-1 min-w-0">
+                                    <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: colorHex }} />
+                                    <span className="truncate text-neutral-700 dark:text-neutral-300 font-medium">{item.name}</span>
+                                    <span className="text-neutral-400 font-bold">({item.count})</span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </>
+            ) : (
+                <p className="text-[10px] text-neutral-400 italic py-8 text-center w-full">Belum ada label koreksi yang digunakan dalam catatan riwayat bacaan.</p>
+            )}
+        </div>
+    );
+};
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -83,7 +229,10 @@ export default function Dashboard({
     logCount = 0,
     classrooms = [],
     students = [],
-    chapters = []
+    chapters = [],
+    weeklyActivity = [],
+    labelDistribution = [],
+    activeGoals = []
 }: DashboardProps) {
     const { auth } = usePage<SharedData>().props;
     const teacherName = auth.user?.name || 'Ustadz';
@@ -391,6 +540,106 @@ export default function Dashboard({
                         </CardContent>
                     </Card>
                 </div>
+
+                {/* Analytic Dashboard */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Weekly Activity Chart Card */}
+                    <Card className="border-neutral-200/60 dark:border-neutral-800 rounded-2xl bg-white dark:bg-neutral-900 shadow-sm">
+                        <CardHeader className="pb-3 border-b border-neutral-100 dark:border-neutral-800/80">
+                            <CardTitle className="text-xs font-bold text-neutral-400 uppercase tracking-wider flex items-center gap-1.5">
+                                <History className="h-4 w-4 text-emerald-600" />
+                                Aktivitas Penginputan Catatan (7 Hari Terakhir)
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-4 flex items-center justify-center min-h-[130px]">
+                            <BarChart data={weeklyActivity} />
+                        </CardContent>
+                    </Card>
+
+                    {/* Label Distribution Chart Card */}
+                    <Card className="border-neutral-200/60 dark:border-neutral-800 rounded-2xl bg-white dark:bg-neutral-900 shadow-sm">
+                        <CardHeader className="pb-3 border-b border-neutral-100 dark:border-neutral-800/80">
+                            <CardTitle className="text-xs font-bold text-neutral-400 uppercase tracking-wider flex items-center gap-1.5">
+                                <Tag className="h-4 w-4 text-emerald-600" />
+                                Distribusi Label Hambatan Bacaan
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-4 flex items-center justify-center min-h-[130px]">
+                            <DonutChart data={labelDistribution} />
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Active Goals Progress Tracker Widget */}
+                <Card className="border-neutral-200/60 dark:border-neutral-800 rounded-2xl bg-white dark:bg-neutral-900 shadow-sm">
+                    <CardHeader className="pb-3 border-b border-neutral-100 dark:border-neutral-800/80 flex flex-row items-center justify-between">
+                        <CardTitle className="text-xs font-bold text-neutral-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <BookOpenCheck className="h-4 w-4 text-emerald-650" />
+                            Target & Kemajuan Belajar Murid Terkini (Aktif)
+                        </CardTitle>
+                        <Link 
+                            href="/student-goals"
+                            className="text-[10px] font-bold text-emerald-650 hover:text-emerald-750 flex items-center gap-0.5"
+                        >
+                            Lihat Semua
+                            <ChevronRight className="h-3 w-3" />
+                        </Link>
+                    </CardHeader>
+                    <CardContent className="p-4">
+                        {activeGoals.length > 0 ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {activeGoals.map((goal) => {
+                                    const progressColor = goal.progress_percentage >= 100 ? 'bg-emerald-650' : 'bg-amber-500';
+                                    return (
+                                        <div 
+                                            key={goal.id}
+                                            className="border border-neutral-150 dark:border-neutral-800 rounded-2xl p-4 bg-white dark:bg-neutral-950 hover:border-emerald-600/30 transition duration-200 flex flex-col justify-between gap-3"
+                                        >
+                                            <div>
+                                                <div className="flex items-center justify-between">
+                                                    <span className={`text-[8px] font-extrabold tracking-wider uppercase px-2 py-0.5 rounded-full ${
+                                                        goal.target_type === 'Takhasus'
+                                                            ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400'
+                                                            : goal.target_type === 'Tahsin'
+                                                                ? 'bg-teal-100 text-teal-700 dark:bg-teal-950/40 dark:text-teal-400'
+                                                                : 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400'
+                                                    }`}>
+                                                        {goal.target_type} • {goal.classroom?.name}
+                                                    </span>
+                                                    <span className="text-[10px] font-bold text-emerald-655 dark:text-emerald-450">
+                                                        {goal.progress_percentage}%
+                                                    </span>
+                                                </div>
+                                                <h4 className="text-xs font-bold text-neutral-800 dark:text-neutral-200 mt-2 line-clamp-1">
+                                                    {goal.target_name}
+                                                </h4>
+                                                <p className="text-[10px] text-neutral-450 mt-0.5">
+                                                    Murid: <strong className="font-semibold text-neutral-700 dark:text-neutral-300">{goal.student?.name}</strong>
+                                                </p>
+                                            </div>
+
+                                            <div className="space-y-1 mt-1">
+                                                <div className="h-1.5 w-full bg-neutral-150 dark:bg-neutral-850 rounded-full overflow-hidden">
+                                                    <div 
+                                                        className={`h-full rounded-full transition-all duration-300 ${progressColor}`}
+                                                        style={{ width: `${goal.progress_percentage}%` }}
+                                                    />
+                                                </div>
+                                                <div className="flex justify-between items-center text-[9px] text-neutral-400">
+                                                    <span>{goal.logged_verses_count} / {goal.total_verses_count} Ayat Terkoreksi</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div className="py-8 text-center text-xs text-neutral-450 italic">
+                                Belum ada target belajar aktif. Silakan tambahkan target belajar baru di menu Target Belajar.
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
 
                 {/* Quick Navigation Panel */}
                 <div className="space-y-4">

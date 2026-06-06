@@ -2,7 +2,7 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
-import { BookOpen, ArrowLeft, Check, Users, AlertCircle, AlertTriangle, ChevronDown, Search } from 'lucide-react';
+import { BookOpen, ArrowLeft, Check, Users, AlertCircle, AlertTriangle, ChevronDown, Search, Play, Pause, Volume2, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -48,6 +48,7 @@ interface Verse {
     verse_number: number;
     verse_key: string;
     text_uthmani: string;
+    text_uthmani_tajweed?: string;
     translations: {
         id: number;
         text: string;
@@ -232,6 +233,65 @@ export default function QuranShow({
         }
         return '';
     });
+
+    const [playingVerse, setPlayingVerse] = useState<number | null>(null);
+    const [audioObject, setAudioObject] = useState<HTMLAudioElement | null>(null);
+    const [autoplayNext, setAutoplayNext] = useState<boolean>(true);
+    const [showTajweed, setShowTajweed] = useState<boolean>(false);
+
+    // Padding helper for everyayah.com URLs
+    const pad = (num: number, size: number) => {
+        let s = num + "";
+        while (s.length < size) s = "0" + s;
+        return s;
+    };
+
+    const playVerseAudio = (verseNumber: number) => {
+        if (playingVerse === verseNumber && audioObject) {
+            audioObject.pause();
+            setPlayingVerse(null);
+            return;
+        }
+
+        if (audioObject) {
+            audioObject.pause();
+        }
+
+        const audioUrl = `https://everyayah.com/data/Alafasy_128kbps/${pad(chapter.id, 3)}${pad(verseNumber, 3)}.mp3`;
+        const audio = new Audio(audioUrl);
+        setAudioObject(audio);
+        setPlayingVerse(verseNumber);
+
+        audio.play().catch(err => {
+            console.error("Gagal memutar audio: ", err);
+            setPlayingVerse(null);
+        });
+
+        const element = document.getElementById(`verse-container-${verseNumber}`);
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        audio.onended = () => {
+            setPlayingVerse(null);
+            if (autoplayNext) {
+                const nextVerse = verseNumber + 1;
+                if (verses.some(v => v.verse_number === nextVerse)) {
+                    setTimeout(() => {
+                        playVerseAudio(nextVerse);
+                    }, 500);
+                }
+            }
+        };
+    };
+
+    useEffect(() => {
+        return () => {
+            if (audioObject) {
+                audioObject.pause();
+            }
+        };
+    }, [audioObject]);
 
     // Build flat list of student options across all classrooms
     const studentOptions: StudentOption[] = classrooms.flatMap((cls) =>
@@ -461,6 +521,32 @@ export default function QuranShow({
                                 options={studentOptions}
                                 placeholder="Ketik nama murid untuk menilai..."
                             />
+
+                            <Button
+                                type="button"
+                                variant={showTajweed ? 'default' : 'outline'}
+                                onClick={() => setShowTajweed(!showTajweed)}
+                                className={`text-xs rounded-xl flex items-center gap-1.5 shrink-0 transition duration-200 cursor-pointer ${
+                                    showTajweed 
+                                        ? 'bg-emerald-700 hover:bg-emerald-800 text-white font-bold border-emerald-700' 
+                                        : 'border-neutral-300 dark:border-neutral-850 hover:bg-neutral-100 dark:hover:bg-neutral-900'
+                                }`}
+                            >
+                                <Sparkles className="h-3.5 w-3.5" />
+                                <span>{showTajweed ? 'Tajwid Aktif' : 'Tajwid Warna'}</span>
+                            </Button>
+
+                            <div className="flex items-center gap-2 bg-neutral-100/60 dark:bg-neutral-900 border border-neutral-200/50 dark:border-neutral-850 rounded-xl px-3 py-2 shrink-0">
+                                <label className="flex items-center gap-1.5 text-[10px] font-bold text-neutral-500 dark:text-neutral-450 cursor-pointer select-none">
+                                    <input
+                                        type="checkbox"
+                                        checked={autoplayNext}
+                                        onChange={(e) => setAutoplayNext(e.target.checked)}
+                                        className="h-3.5 w-3.5 border-neutral-300 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                    />
+                                    Putar Otomatis
+                                </label>
+                            </div>
                         </div>
                     </div>
 
@@ -512,16 +598,27 @@ export default function QuranShow({
                             {verses.map((verse) => {
                                 const arabicWords = verse.text_uthmani.split(' ');
                                 const isHighlighted = highlightedVerse === verse.verse_number;
+                                const isPlaying = playingVerse === verse.verse_number;
                                 return (
                                     <div
                                             key={verse.id}
                                             id={`verse-container-${verse.verse_number}`}
-                                            className={`py-8 space-y-4 px-3 rounded-2xl transition duration-500 ${
-                                                isHighlighted
-                                                    ? 'bg-amber-100/30 dark:bg-amber-950/20 border border-amber-400/60 shadow-lg shadow-amber-500/5 animate-[pulse_2s_infinite]'
-                                                    : 'hover:bg-neutral-50/30 dark:hover:bg-neutral-900/10'
+                                            className={`py-8 space-y-4 px-4 rounded-2xl border transition duration-500 ${
+                                                isPlaying
+                                                    ? 'bg-amber-50/40 dark:bg-amber-950/15 border-amber-400/80 shadow-md shadow-amber-500/5'
+                                                    : isHighlighted
+                                                        ? 'bg-amber-100/30 dark:bg-amber-950/20 border-amber-400/60 shadow-lg shadow-amber-500/5 animate-[pulse_2s_infinite]'
+                                                        : 'hover:bg-neutral-50/30 dark:hover:bg-neutral-900/10 border-transparent'
                                             }`}
                                         >
+                                        {/* Colored Tajwid Verse (Full flow, if enabled) */}
+                                        {showTajweed && verse.text_uthmani_tajweed && (
+                                            <div 
+                                                className="text-right font-arabic text-3xl font-bold leading-[4.5rem] tracking-wide mb-5 text-neutral-850 dark:text-neutral-100 select-none antialiased"
+                                                dangerouslySetInnerHTML={{ __html: verse.text_uthmani_tajweed }}
+                                            />
+                                        )}
+
                                         {/* Verse Arabic Text (Right Aligned) */}
                                         <div className="text-right flex flex-wrap flex-row-reverse gap-y-3 justify-start items-center leading-[3rem]">
                                             {arabicWords.map((word, wordIdx) => (
@@ -548,6 +645,20 @@ export default function QuranShow({
                                             >
                                                 {verse.verse_number}
                                             </div>
+
+                                            {/* Audio Play/Pause Button */}
+                                            <button
+                                                type="button"
+                                                onClick={() => playVerseAudio(verse.verse_number)}
+                                                className={`inline-flex items-center justify-center h-9 w-9 shrink-0 rounded-full border transition duration-200 cursor-pointer ${
+                                                    isPlaying
+                                                        ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm hover:bg-emerald-700'
+                                                        : 'border-neutral-250 dark:border-neutral-800 text-neutral-450 hover:text-emerald-600 dark:hover:text-emerald-450 hover:bg-emerald-50 dark:hover:bg-neutral-900'
+                                                }`}
+                                                title={isPlaying ? 'Jeda Suara' : 'Putar Suara Murottal'}
+                                            >
+                                                {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
+                                            </button>
                                         </div>
 
                                         {/* Translation Text (Left Aligned) */}

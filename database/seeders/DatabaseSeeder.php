@@ -131,5 +131,58 @@ class DatabaseSeeder extends Seeder
                 ]);
             }
         }
+
+        // 5. Seed default StudentGoals and matching Reading Histories
+        $syawqiStudents = \DB::table('classroom_student')
+            ->join('classrooms', 'classroom_student.classroom_id', '=', 'classrooms.id')
+            ->where('classrooms.teacher_id', $syawqi->id)
+            ->select('classroom_student.student_id', 'classroom_student.classroom_id', 'classrooms.type')
+            ->get();
+
+        foreach ($syawqiStudents as $index => $item) {
+            $surahStart = 78 + ($index % 4); // An-Naba, An-Naziat, Abasa, At-Takwir
+            $versesCount = [78 => 40, 79 => 46, 80 => 42, 81 => 29];
+            $endVerse = $versesCount[$surahStart] ?? 20;
+
+            // Determine how many verses are read for realistic progress display
+            $readCount = 0;
+            $status = 'aktif';
+            if ($index % 4 == 0) {
+                $readCount = 15; // 15/40 = 37.5% progress
+            } elseif ($index % 4 == 1) {
+                $readCount = 23; // 23/46 = 50% progress
+            } elseif ($index % 4 == 2) {
+                $readCount = 10; // 10/42 = 23.8% progress
+            } else {
+                $readCount = $endVerse; // 100% progress
+                $status = 'selesai';
+            }
+
+            \App\Models\StudentGoal::create([
+                'student_id' => $item->student_id,
+                'classroom_id' => $item->classroom_id,
+                'target_name' => 'Khatam Surah ' . ($surahStart == 78 ? 'An-Naba' : ($surahStart == 79 ? 'An-Naziat' : ($surahStart == 80 ? 'Abasa' : 'At-Takwir'))),
+                'target_type' => $item->type,
+                'target_surah_start' => $surahStart,
+                'target_verse_start' => 1,
+                'target_surah_end' => $surahStart,
+                'target_verse_end' => $endVerse,
+                'status' => $status,
+                'created_by' => $syawqi->id,
+            ]);
+
+            // Seed Reading Histories for this goal range to populate progress bar
+            for ($v = 1; $v <= $readCount; $v++) {
+                \App\Models\ReadingHistory::create([
+                    'student_id' => $item->student_id,
+                    'classroom_id' => $item->classroom_id,
+                    'surah_number' => $surahStart,
+                    'verse_number' => $v,
+                    'comments' => $v % 3 == 0 ? 'Bacaan tajwid baik dan makhraj tepat.' : 'Lancar, teruskan.',
+                    'labels' => $v % 5 == 0 ? ['Tajwid', 'Lancar'] : ['Lancar'],
+                    'logged_by' => $syawqi->id,
+                ]);
+            }
+        }
     }
 }

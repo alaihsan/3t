@@ -25,4 +25,9 @@ class Student extends Model
     {
         return $this->hasMany(ReadingHistory::class);
     }
+
+    public function goals(): HasMany
+    {
+        return $this->hasMany(StudentGoal::class);
+    }
 }

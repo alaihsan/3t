@@ -5,6 +5,7 @@ use App\Http\Controllers\ClassroomController;
 use App\Http\Controllers\ReadingHistoryController;
 use App\Http\Controllers\SuggestionController;
 use App\Http\Controllers\CorrectionLabelController;
+use App\Http\Controllers\StudentGoalController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -31,6 +32,64 @@ Route::middleware(['auth'])->group(function () {
         $studentCount = $students->count();
         $logCount = \App\Models\ReadingHistory::where('logged_by', $teacherId)->count();
 
+        // Weekly activity calculation for analytic dashboard
+        $weeklyActivity = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $date = now()->subDays($i)->format('Y-m-d');
+            $englishDay = now()->subDays($i)->format('l');
+            $shortDays = [
+                'Sunday' => 'Min', 'Monday' => 'Sen', 'Tuesday' => 'Sel', 'Wednesday' => 'Rab',
+                'Thursday' => 'Kam', 'Friday' => 'Jum', 'Saturday' => 'Sab'
+            ];
+            $dayLabel = $shortDays[$englishDay] ?? substr($englishDay, 0, 3);
+            
+            $count = \App\Models\ReadingHistory::where('logged_by', $teacherId)
+                ->whereDate('created_at', $date)
+                ->count();
+            
+            $weeklyActivity[] = [
+                'day' => $dayLabel,
+                'count' => $count
+            ];
+        }
+
+        // Label distribution calculation for donut chart
+        $histories = \App\Models\ReadingHistory::where('logged_by', $teacherId)->get();
+        $labelCounts = [];
+        foreach ($histories as $history) {
+            if (is_array($history->labels)) {
+                foreach ($history->labels as $label) {
+                    $labelCounts[$label] = ($labelCounts[$label] ?? 0) + 1;
+                }
+            }
+        }
+        
+        $correctionLabels = \App\Models\CorrectionLabel::where('teacher_id', $teacherId)->get();
+        $labelDistribution = [];
+        foreach ($correctionLabels as $cLabel) {
+            $count = $labelCounts[$cLabel->name] ?? 0;
+            $labelDistribution[] = [
+                'name' => $cLabel->name,
+                'color' => $cLabel->color,
+                'count' => $count
+            ];
+        }
+
+        // Fetch top 5 active student goals and calculate their progress percentages
+        $activeGoals = \App\Models\StudentGoal::where('created_by', $teacherId)
+            ->where('status', 'aktif')
+            ->with(['student', 'classroom'])
+            ->orderBy('created_at', 'desc')
+            ->take(5)
+            ->get()
+            ->map(function ($goal) {
+                $progressData = $goal->getProgressData();
+                $goal->total_verses_count = $progressData['total_verses_count'];
+                $goal->logged_verses_count = $progressData['logged_verses_count'];
+                $goal->progress_percentage = $progressData['progress_percentage'];
+                return $goal;
+            });
+
         return Inertia::render('dashboard', [
             'classCount' => $classCount,
             'studentCount' => $studentCount,
@@ -38,6 +97,9 @@ Route::middleware(['auth'])->group(function () {
             'classrooms' => $classrooms,
             'students' => $students,
             'chapters' => $chapters,
+            'weeklyActivity' => $weeklyActivity,
+            'labelDistribution' => $labelDistribution,
+            'activeGoals' => $activeGoals,
         ]);
     })->name('dashboard');
 
@@ -75,6 +137,12 @@ Route::middleware(['auth'])->group(function () {
     Route::post('correction-labels', [CorrectionLabelController::class, 'store'])->name('correction-labels.store');
     Route::put('correction-labels/{label}', [CorrectionLabelController::class, 'update'])->name('correction-labels.update');
     Route::delete('correction-labels/{label}', [CorrectionLabelController::class, 'destroy'])->name('correction-labels.destroy');
+
+    // Student Goals (Goal Tracker)
+    Route::get('student-goals', [StudentGoalController::class, 'index'])->name('student-goals.index');
+    Route::post('student-goals', [StudentGoalController::class, 'store'])->name('student-goals.store');
+    Route::put('student-goals/{goal}', [StudentGoalController::class, 'update'])->name('student-goals.update');
+    Route::delete('student-goals/{goal}', [StudentGoalController::class, 'destroy'])->name('student-goals.destroy');
 });
 
 require __DIR__.'/settings.php';

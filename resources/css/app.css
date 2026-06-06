@@ -158,3 +158,11 @@
         @apply bg-background text-foreground;
     }
 }
+
+/* Tajweed Color Coding Styles */
+tajweed.ham_wasl { color: #8b8b8b; }
+tajweed.laam_shamsiyah { color: #8b8b8b; }
+tajweed.madda_normal, tajweed.madda_permissible, tajweed.madda_necessary, tajweed.madda_obligatory { color: #dc2626; } /* Red */
+tajweed.ghunnah, tajweed.idgham_ghunnah, tajweed.ikhfa, tajweed.iqlab { color: #059669; } /* Green */
+tajweed.qalqalah { color: #2563eb; } /* Blue */
+tajweed.idgham_without_ghunnah { color: #8b8b8b; }

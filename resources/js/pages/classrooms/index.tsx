@@ -9,10 +9,18 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
+interface StudentGoal {
+    id: number;
+    target_name: string;
+    status: string;
+    progress_percentage: number;
+}
+
 interface Student {
     id: number;
     nis: string;
     name: string;
+    goals?: StudentGoal[];
 }
 
 interface CustomLabel {
@@ -329,30 +337,62 @@ export default function ClassroomsIndex({ classrooms = [] }: ClassroomsIndexProp
                                 {activeTab === 'students' && (
                                     <div className="flex-1 overflow-y-auto p-6 min-h-0">
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                            {selectedClass.students?.map((student) => (
-                                                <div
-                                                    key={student.id}
-                                                    className="flex items-center justify-between p-3 border border-neutral-200/60 dark:border-neutral-800 rounded-xl hover:border-emerald-600/40 dark:hover:border-emerald-500/30 transition duration-200"
-                                                >
-                                                    <div>
-                                                        <div className="font-semibold text-xs text-neutral-800 dark:text-neutral-200">
-                                                            {student.name}
-                                                        </div>
-                                                        <div className="text-[10px] text-neutral-400 mt-0.5">
-                                                            NIS: {student.nis}
-                                                        </div>
-                                                    </div>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={() => triggerDelete('student', student.id, student.name, selectedClass.id)}
-                                                        className="h-7 w-7 text-neutral-400 hover:text-red-600 dark:hover:text-red-500 hover:bg-red-50/50 dark:hover:bg-red-950/20 rounded-lg shrink-0 cursor-pointer"
-                                                        title="Keluarkan Murid"
+                                            {selectedClass.students?.map((student) => {
+                                                const studentGoals = student.goals || [];
+                                                return (
+                                                    <div
+                                                        key={student.id}
+                                                        className="flex flex-col gap-2.5 p-3.5 border border-neutral-200/60 dark:border-neutral-800 rounded-xl hover:border-emerald-600/40 dark:hover:border-emerald-500/30 transition duration-200 bg-white dark:bg-neutral-950"
                                                     >
-                                                        <UserMinus className="h-3.5 w-3.5" />
-                                                    </Button>
-                                                </div>
-                                            ))}
+                                                        <div className="flex items-start justify-between gap-2">
+                                                            <div>
+                                                                <div className="font-semibold text-xs text-neutral-800 dark:text-neutral-200">
+                                                                    {student.name}
+                                                                </div>
+                                                                <div className="text-[10px] text-neutral-450 mt-0.5">
+                                                                    NIS: {student.nis}
+                                                                </div>
+                                                            </div>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={() => triggerDelete('student', student.id, student.name, selectedClass.id)}
+                                                                className="h-7 w-7 text-neutral-400 hover:text-red-655 dark:hover:text-red-500 hover:bg-red-50/50 dark:hover:bg-red-950/20 rounded-lg shrink-0 cursor-pointer"
+                                                                title="Keluarkan Murid"
+                                                            >
+                                                                <UserMinus className="h-3.5 w-3.5" />
+                                                            </Button>
+                                                        </div>
+
+                                                        {/* Goals and Progress percentages */}
+                                                        {studentGoals.length > 0 && (
+                                                            <div className="border-t border-neutral-100 dark:border-neutral-850 pt-2.5 space-y-2">
+                                                                <div className="text-[9px] font-extrabold text-neutral-400 dark:text-neutral-550 uppercase tracking-wider">Target Belajar</div>
+                                                                {studentGoals.map((goal) => (
+                                                                    <div key={goal.id} className="space-y-1">
+                                                                        <div className="flex items-center justify-between text-[10px]">
+                                                                            <span className="text-neutral-600 dark:text-neutral-350 truncate max-w-[130px] font-medium" title={goal.target_name}>
+                                                                                {goal.target_name}
+                                                                            </span>
+                                                                            <span className="text-emerald-655 dark:text-emerald-400 font-bold shrink-0">
+                                                                                {goal.progress_percentage}%
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="h-1.5 w-full bg-neutral-100 dark:bg-neutral-850 rounded-full overflow-hidden">
+                                                                            <div
+                                                                                className={`h-full rounded-full transition-all duration-300 ${
+                                                                                    goal.status === 'selesai' ? 'bg-emerald-600' : 'bg-amber-500'
+                                                                                }`}
+                                                                                style={{ width: `${goal.progress_percentage}%` }}
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
                                             {(!selectedClass.students || selectedClass.students.length === 0) && (
                                                 <div className="col-span-2 text-center py-12 bg-neutral-50/40 dark:bg-neutral-950/10 border border-dashed border-neutral-200 dark:border-neutral-800 rounded-2xl flex flex-col items-center">
                                                     <Users className="h-8 w-8 text-neutral-300 dark:text-neutral-700 mb-2" />
