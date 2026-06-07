@@ -47,6 +47,7 @@ class DatabaseSeeder extends Seeder
         // Map teacher IDs dynamically to seed
         $teachers = [$syawqi->id, $hafiz->id, $laila->id];
         $teacherIndex = 0;
+        $nisCounter = 10001;
 
         foreach ($types as $type) {
             foreach ($grades as $grade) {
@@ -80,36 +81,22 @@ class DatabaseSeeder extends Seeder
                             'name' => $labelName,
                         ]);
                     }
+
+                    // Create 5 sample students for this classroom
+                    $studentIds = [];
+                    for ($i = 0; $i < 5; $i++) {
+                        $student = Student::create([
+                            'nis' => strval($nisCounter++),
+                            'name' => fake()->name(),
+                        ]);
+                        $studentIds[] = $student->id;
+                    }
+                    $classroom->students()->attach($studentIds);
                 }
             }
         }
 
-        // 3. Seed some default students and put them in a few classes
-        $studentsData = [
-            ['nis' => '10001', 'name' => 'Ahmad Fauzi'],
-            ['nis' => '10002', 'name' => 'Siti Aminah'],
-            ['nis' => '10003', 'name' => 'Muhammad Ali'],
-            ['nis' => '10004', 'name' => 'Fatimah Az-Zahra'],
-            ['nis' => '10005', 'name' => 'Yusuf Habibi'],
-            ['nis' => '10006', 'name' => 'Zahra Humaira'],
-            ['nis' => '10007', 'name' => 'Hamzah Asadullah'],
-            ['nis' => '10008', 'name' => 'Aisyah Humaira'],
-        ];
-
-        $students = [];
-        foreach ($studentsData as $data) {
-            $students[] = Student::create($data);
-        }
-
-        // Assign some students to classes taught by Ustadz Syawqi
-        $syawqiClasses = Classroom::where('teacher_id', $syawqi->id)->take(3)->get();
-        foreach ($syawqiClasses as $class) {
-            // Assign 3 random students
-            $class->students()->attach([
-                $students[rand(0, 3)]->id,
-                $students[rand(4, 7)]->id
-            ]);
-        }
+        // 3. Sample students are already seeded inside the classroom creation loop above
 
         // 4. Seed default CorrectionLabels for teachers
         $defaultLabels = [

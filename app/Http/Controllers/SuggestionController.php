@@ -37,7 +37,7 @@ class SuggestionController extends Controller
         Suggestion::create([
             'user_id' => auth()->id(),
             'subject' => $request->subject,
-            'content' => $request->content,
+            'content' => $request->input('content'),
         ]);
 
         return redirect()->back()->with('success', 'Saran & perbaikan berhasil dikirim.');
@@ -60,7 +60,7 @@ class SuggestionController extends Controller
 
         $suggestion->update([
             'subject' => $request->subject,
-            'content' => $request->content,
+            'content' => $request->input('content'),
         ]);
 
         return redirect()->back()->with('success', 'Saran & perbaikan berhasil diperbarui.');

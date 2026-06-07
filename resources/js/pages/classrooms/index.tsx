@@ -242,14 +242,15 @@ export default function ClassroomsIndex({ classrooms = [] }: ClassroomsIndexProp
                                         </div>
                                         <div className="text-[10px] text-neutral-500 flex items-center justify-between">
                                             <span>{cls.students_count || cls.students?.length || 0} Murid Terdaftar</span>
-                                            <Trash2
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    triggerDelete('classroom', cls.id, cls.name);
-                                                }}
-                                                className="h-3.5 w-3.5 text-neutral-400 hover:text-red-600 dark:hover:text-red-500 cursor-pointer transition"
-                                                title="Hapus Kelas"
-                                            />
+                                            <span title="Hapus Kelas">
+                                                <Trash2
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        triggerDelete('classroom', cls.id, cls.name);
+                                                    }}
+                                                    className="h-3.5 w-3.5 text-neutral-400 hover:text-red-650 dark:hover:text-red-500 cursor-pointer transition"
+                                                />
+                                            </span>
                                         </div>
                                     </button>
                                 );
@@ -437,11 +438,12 @@ export default function ClassroomsIndex({ classrooms = [] }: ClassroomsIndexProp
                                                         className="flex items-center gap-2 px-3 py-1.5 bg-neutral-50 border border-neutral-200 dark:bg-neutral-950 dark:border-neutral-800 rounded-xl text-xs text-neutral-700 dark:text-neutral-300 group"
                                                     >
                                                         <span>{label.name}</span>
-                                                        <X
-                                                            onClick={() => triggerDelete('label', label.id, label.name)}
-                                                            className="h-3.5 w-3.5 text-neutral-400 hover:text-red-600 cursor-pointer transition"
-                                                            title="Hapus Label"
-                                                        />
+                                                        <span title="Hapus Label">
+                                                            <X
+                                                                onClick={() => triggerDelete('label', label.id, label.name)}
+                                                                className="h-3.5 w-3.5 text-neutral-400 hover:text-red-600 cursor-pointer transition"
+                                                            />
+                                                        </span>
                                                     </div>
                                                 ))}
                                                 {(!selectedClass.custom_labels || selectedClass.custom_labels.length === 0) && (

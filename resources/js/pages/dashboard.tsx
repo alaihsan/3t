@@ -146,8 +146,9 @@ const DonutChart = ({ data = [] }: { data: { name: string; color: string; count:
                                         strokeDasharray={circ}
                                         strokeDashoffset={-dashOffset}
                                         className="transition-all duration-300 hover:stroke-[10px]"
-                                        title={`${item.name}: ${item.count} (${Math.round(pct * 100)}%)`}
-                                    />
+                                    >
+                                        <title>{`${item.name}: ${item.count} (${Math.round(pct * 100)}%)`}</title>
+                                    </circle>
                                 );
                             })}
                             <circle

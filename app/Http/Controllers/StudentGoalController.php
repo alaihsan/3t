@@ -49,7 +49,7 @@ class StudentGoalController extends Controller
             ->get();
 
         // Calculate progress for each goal dynamically using the model helper
-        $goals = $rawGoals->map(function ($goal) {
+        $goals = $rawGoals->map(function (StudentGoal $goal) {
             $progressData = $goal->getProgressData();
             
             $goal->total_verses_count = $progressData['total_verses_count'];

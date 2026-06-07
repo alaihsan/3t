@@ -12,6 +12,7 @@ interface LoginForm {
     username: string;
     password: string;
     remember: boolean;
+    [key: string]: any;
 }
 
 export default function Login() {

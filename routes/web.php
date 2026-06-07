@@ -82,7 +82,7 @@ Route::middleware(['auth'])->group(function () {
             ->orderBy('created_at', 'desc')
             ->take(5)
             ->get()
-            ->map(function ($goal) {
+            ->map(function (\App\Models\StudentGoal $goal) {
                 $progressData = $goal->getProgressData();
                 $goal->total_verses_count = $progressData['total_verses_count'];
                 $goal->logged_verses_count = $progressData['logged_verses_count'];

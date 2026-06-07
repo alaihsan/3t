@@ -405,11 +405,12 @@ export default function ReadingHistoryIndex({
                                                             {log.classroom.name}
                                                         </span>
 
-                                                        <Trash2
-                                                            onClick={() => triggerDelete(log)}
-                                                            className="h-4 w-4 text-neutral-400 hover:text-red-600 dark:hover:text-red-500 cursor-pointer transition shrink-0"
-                                                            title="Hapus Catatan"
-                                                        />
+                                                        <span title="Hapus Catatan">
+                                                            <Trash2
+                                                                onClick={() => triggerDelete(log)}
+                                                                className="h-4 w-4 text-neutral-400 hover:text-red-600 dark:hover:text-red-500 cursor-pointer transition shrink-0"
+                                                            />
+                                                        </span>
                                                     </div>
                                                 </div>
 

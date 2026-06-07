@@ -45,6 +45,7 @@ interface StudentGoal {
     total_verses_count: number;
     logged_verses_count: number;
     progress_percentage: number;
+    created_at: string;
 }
 
 interface GoalsIndexProps {
