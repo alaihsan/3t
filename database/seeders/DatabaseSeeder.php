@@ -83,11 +83,16 @@ class DatabaseSeeder extends Seeder
                     }
 
                     // Create 5 sample students for this classroom
+                    $firstNames = ['Ahmad', 'Muhammad', 'Yusuf', 'Hamzah', 'Ali', 'Umar', 'Abdurrahman', 'Ibrahim', 'Ismail', 'Ishaq', 'Siti', 'Fatimah', 'Aisyah', 'Khadijah', 'Maryam', 'Aminah'];
+                    $lastNames = ['Fauzi', 'Anshori', 'Saputra', 'Hidayat', 'Wijaya', 'Kusuma', 'Ramadhan', 'Rizky', 'Hakim', 'Mubarak'];
+
                     $studentIds = [];
                     for ($i = 0; $i < 5; $i++) {
+                        $fName = $firstNames[array_rand($firstNames)];
+                        $lName = $lastNames[array_rand($lastNames)];
                         $student = Student::create([
                             'nis' => strval($nisCounter++),
-                            'name' => fake()->name(),
+                            'name' => "{$fName} {$lName}",
                         ]);
                         $studentIds[] = $student->id;
                     }
