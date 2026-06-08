@@ -20,7 +20,7 @@ class ClassroomController extends Controller
         $classrooms = Classroom::where('teacher_id', auth()->id())
             ->with(['students.goals' => function ($query) {
                 $query->where('created_by', auth()->id());
-            }, 'customLabels'])
+            }, 'students.classrooms', 'customLabels'])
             ->withCount('students')
             ->orderBy('name')
             ->get();
@@ -37,8 +37,11 @@ class ClassroomController extends Controller
             }
         }
 
+        $allStudents = Student::orderBy('name')->get();
+
         return Inertia::render('classrooms/index', [
-            'classrooms' => $classrooms
+            'classrooms' => $classrooms,
+            'allStudents' => $allStudents,
         ]);
     }
 
@@ -190,6 +193,24 @@ class ClassroomController extends Controller
     }
 
     /**
+     * Add an existing student to a classroom.
+     */
+    public function addStudent(Request $request, Classroom $classroom): RedirectResponse
+    {
+        if ($classroom->teacher_id !== auth()->id()) {
+            abort(403, 'Aksi tidak diizinkan.');
+        }
+
+        $request->validate([
+            'student_id' => 'required|exists:students,id',
+        ]);
+
+        $classroom->students()->syncWithoutDetaching([$request->student_id]);
+
+        return redirect()->back()->with('success', 'Murid berhasil ditambahkan ke kelas.');
+    }
+
+    /**
      * Remove a student from a classroom.
      */
     public function removeStudent(Classroom $classroom, Student $student): RedirectResponse
@@ -203,3 +224,4 @@ class ClassroomController extends Controller
         return redirect()->back()->with('success', 'Murid berhasil dikeluarkan dari kelas.');
     }
 }
+

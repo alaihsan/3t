@@ -4,7 +4,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, Users, History, Tag, Target } from 'lucide-react';
+import { BookOpen, Folder, LayoutGrid, Users, History, Tag, Target, ClipboardList } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
@@ -37,6 +37,11 @@ const mainNavItems: NavItem[] = [
         title: 'Target Belajar',
         url: '/student-goals',
         icon: Target,
+    },
+    {
+        title: 'Rekap Nilai',
+        url: '/rekap-nilai',
+        icon: ClipboardList,
     },
 ];
 

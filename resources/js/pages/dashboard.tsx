@@ -131,7 +131,7 @@ const DonutChart = ({ data = [] }: { data: { name: string; color: string; count:
                                 const strokeOffset = circ - strokeLength;
                                 const dashOffset = (accumulatedPercentage / 100) * circ;
                                 accumulatedPercentage += pct * 100;
-                                
+
                                 const colorHex = labelColors[item.color] || '#6b7280';
 
                                 return (
@@ -192,7 +192,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const QURAN_QUOTES = [
-    "\"Sebaik-baik kalian adalah orang yang belajar Al-Qur'an dan mengajarkannya.\" (HR. Bukhari)",
+    "\" Sebaik-baik kalian adalah orang yang belajar Al-Qur'an dan mengajarkannya.\" (HR. Bukhari)",
     "\"Orang yang mahir membaca Al-Qur'an bersama malaikat yang mulia lagi taat.\" (HR. Bukhari & Muslim)",
     "\"Bacalah Al-Qur'an, karena ia akan datang pada hari kiamat sebagai syafaat bagi pembacanya.\" (HR. Muslim)",
     "\"Barangsiapa membaca satu huruf dari Kitabullah, maka baginya satu kebaikan dan dilipatgandakan sepuluh kali.\" (HR. Tirmidzi)",
@@ -205,7 +205,7 @@ const QURAN_QUOTES = [
     "\"Barangsiapa menginginkan dunia maka dengan ilmu, barangsiapa menginginkan akhirat maka dengan ilmu Al-Qur'an.\" (Atsar)",
     "\"Penuntut ilmu Al-Qur'an senantiasa didoakan kebaikan oleh para malaikat hingga ikan di lautan.\" (HR. Tirmidzi)",
     "\"Hati yang di dalamnya tidak ada sedikit pun dari Al-Qur'an ibarat rumah yang runtuh.\" (HR. Tirmidzi)",
-    "\"Sebaik-baik kesibukan di dunia ini adalah menyibukkan diri dengan mempelajari wahyu Allah Ta'ala.\" (Imam Asy-Syafii)",
+    "\" Sebaik-baik kesibukan di dunia ini adalah menyibukkan diri dengan mempelajari wahyu Allah Ta'ala.\" (Imam Asy-Syafii)",
     "\"Dua hal yang boleh dicemburui: seseorang yang dianugerahi Al-Qur'an lalu ia mengamalkannya siang dan malam.\" (HR. Bukhari)",
     "\"Orang tua yang anaknya mempelajari Al-Qur'an akan dipakaikan mahkota cahaya di hari kiamat.\" (HR. Abu Dawud)",
     "\"Membaca Al-Qur'an dengan tadabbur adalah obat paling mujarab untuk membersihkan kotoran di dalam hati.\" (Ibnu Qayyim)",
@@ -224,9 +224,9 @@ const QURAN_QUOTES = [
     "\"Mempelajari Al-Qur'an adalah kunci utama untuk meraih keberkahan hidup di dunia dan keselamatan di akhirat.\" (Atsar)"
 ];
 
-export default function Dashboard({ 
-    classCount = 0, 
-    studentCount = 0, 
+export default function Dashboard({
+    classCount = 0,
+    studentCount = 0,
     logCount = 0,
     classrooms = [],
     students = [],
@@ -268,7 +268,7 @@ export default function Dashboard({
     const [searchQuery, setSearchQuery] = useState('');
 
     const query = searchQuery.toLowerCase().trim();
-    
+
     // Normalize helper for robust spelling comparison (removing hyphens, spaces, etc)
     const normalizeStr = (str: string) => str.toLowerCase().replace(/[^a-z0-9]/g, '');
     const normalizedQuery = normalizeStr(query);
@@ -286,11 +286,11 @@ export default function Dashboard({
     if (matchVerse) {
         const potentialSurahIdentifier = matchVerse[1].trim();
         const verseNumber = parseInt(matchVerse[2], 10);
-        
+
         // Strip out the word "surah", "sura", or "surat" if the user prefixed it
         const cleanIdentifier = potentialSurahIdentifier.replace(/^(?:surah|sura|surat)\s+/i, '').trim();
 
-        const targetChapter = chapters.find(ch => 
+        const targetChapter = chapters.find(ch =>
             normalizeStr(ch.name_complex).includes(normalizeStr(cleanIdentifier)) ||
             normalizeStr(ch.translated_name.name).includes(normalizeStr(cleanIdentifier)) ||
             ch.id.toString() === cleanIdentifier
@@ -307,28 +307,28 @@ export default function Dashboard({
     }
 
     // 2. Match Quran Chapters (Surah)
-    const matchedChapters = query 
-        ? chapters.filter(ch => 
+    const matchedChapters = query
+        ? chapters.filter(ch =>
             normalizeStr(ch.name_complex).includes(normalizedQuery) ||
             normalizeStr(ch.translated_name.name).includes(normalizedQuery) ||
             ch.id.toString() === query
-        ).slice(0, 5) 
+        ).slice(0, 5)
         : [];
 
     // 3. Match Classrooms
-    const matchedClassrooms = query 
-        ? classrooms.filter(cls => 
+    const matchedClassrooms = query
+        ? classrooms.filter(cls =>
             cls.name.toLowerCase().includes(query) ||
             cls.type.toLowerCase().includes(query)
-        ).slice(0, 5) 
+        ).slice(0, 5)
         : [];
 
     // 4. Match Students
-    const matchedStudents = query 
-        ? students.filter(st => 
+    const matchedStudents = query
+        ? students.filter(st =>
             st.name.toLowerCase().includes(query) ||
             st.nis.includes(query)
-        ).slice(0, 5) 
+        ).slice(0, 5)
         : [];
 
     const hasResults = matchedChapters.length > 0 || matchedClassrooms.length > 0 || matchedStudents.length > 0 || matchedVerses.length > 0;
@@ -338,13 +338,13 @@ export default function Dashboard({
             <Head title="Dashboard - 3T Al Quran" />
 
             <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
-                
+
                 {/* Google-like Search Bar Card */}
                 <div className="text-center py-10 max-w-3xl mx-auto w-full relative">
                     <h2 className="text-xl font-bold text-neutral-500 dark:text-neutral-400 mb-4 font-arabic select-none tracking-wide">
                         بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ
                     </h2>
-                    
+
                     <div className="relative group">
                         <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-5">
                             <Search className="h-6 w-6 text-neutral-400 group-focus-within:text-emerald-600 transition-colors" />
@@ -365,7 +365,7 @@ export default function Dashboard({
                             </button>
                         )}
                     </div>
-                    
+
                     <p className="text-[10px] text-neutral-450 dark:text-neutral-500 mt-2.5">
                         <span className="font-semibold text-emerald-700 dark:text-emerald-400">Tips pencarian:</span> Ketik <span className="italic font-mono">"Ahmad"</span> untuk murid, <span className="italic font-mono">"7A"</span> untuk kelas, atau <span className="italic font-mono">"Al-Baqarah 255"</span> / <span className="italic font-mono">"2:255"</span> untuk ayat Al Quran.
                     </p>
@@ -373,7 +373,7 @@ export default function Dashboard({
                     {/* Google Autocomplete Results List */}
                     {searchQuery.trim() !== '' && (
                         <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xl overflow-hidden z-30 max-h-96 overflow-y-auto divide-y divide-neutral-100 dark:divide-neutral-800 text-left">
-                            
+
                             {/* Verse Matches */}
                             {matchedVerses.length > 0 && (
                                 <div className="p-3.5 bg-emerald-50/10 dark:bg-emerald-950/5">
@@ -578,7 +578,7 @@ export default function Dashboard({
                             <BookOpenCheck className="h-4 w-4 text-emerald-650" />
                             Target & Kemajuan Belajar Murid Terkini (Aktif)
                         </CardTitle>
-                        <Link 
+                        <Link
                             href="/student-goals"
                             className="text-[10px] font-bold text-emerald-650 hover:text-emerald-750 flex items-center gap-0.5"
                         >
@@ -592,19 +592,18 @@ export default function Dashboard({
                                 {activeGoals.map((goal) => {
                                     const progressColor = goal.progress_percentage >= 100 ? 'bg-emerald-650' : 'bg-amber-500';
                                     return (
-                                        <div 
+                                        <div
                                             key={goal.id}
                                             className="border border-neutral-150 dark:border-neutral-800 rounded-2xl p-4 bg-white dark:bg-neutral-950 hover:border-emerald-600/30 transition duration-200 flex flex-col justify-between gap-3"
                                         >
                                             <div>
                                                 <div className="flex items-center justify-between">
-                                                    <span className={`text-[8px] font-extrabold tracking-wider uppercase px-2 py-0.5 rounded-full ${
-                                                        goal.target_type === 'Takhasus'
+                                                    <span className={`text-[8px] font-extrabold tracking-wider uppercase px-2 py-0.5 rounded-full ${goal.target_type === 'Takhasus'
                                                             ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400'
                                                             : goal.target_type === 'Tahsin'
                                                                 ? 'bg-teal-100 text-teal-700 dark:bg-teal-950/40 dark:text-teal-400'
                                                                 : 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400'
-                                                    }`}>
+                                                        }`}>
                                                         {goal.target_type} • {goal.classroom?.name}
                                                     </span>
                                                     <span className="text-[10px] font-bold text-emerald-655 dark:text-emerald-450">
@@ -621,7 +620,7 @@ export default function Dashboard({
 
                                             <div className="space-y-1 mt-1">
                                                 <div className="h-1.5 w-full bg-neutral-150 dark:bg-neutral-850 rounded-full overflow-hidden">
-                                                    <div 
+                                                    <div
                                                         className={`h-full rounded-full transition-all duration-300 ${progressColor}`}
                                                         style={{ width: `${goal.progress_percentage}%` }}
                                                     />
@@ -647,7 +646,7 @@ export default function Dashboard({
                     <h2 className="text-sm font-bold text-neutral-400 uppercase tracking-wider">Akses Cepat Menu</h2>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         {/* Quran Link */}
-                        <Link 
+                        <Link
                             href={route('quran.index')}
                             className="group flex items-center justify-between p-5 border border-neutral-200/80 dark:border-neutral-800 rounded-2xl hover:border-emerald-600 dark:hover:border-emerald-500 bg-white dark:bg-neutral-900 transition duration-300 hover:shadow-md"
                         >
@@ -664,7 +663,7 @@ export default function Dashboard({
                         </Link>
 
                         {/* Classrooms Link */}
-                        <Link 
+                        <Link
                             href={route('classrooms.index')}
                             className="group flex items-center justify-between p-5 border border-neutral-200/80 dark:border-neutral-800 rounded-2xl hover:border-emerald-600 dark:hover:border-emerald-500 bg-white dark:bg-neutral-900 transition duration-300 hover:shadow-md"
                         >
@@ -681,7 +680,7 @@ export default function Dashboard({
                         </Link>
 
                         {/* Reading Histories Link */}
-                        <Link 
+                        <Link
                             href={route('reading-histories.index')}
                             className="group flex items-center justify-between p-5 border border-neutral-200/80 dark:border-neutral-800 rounded-2xl hover:border-emerald-600 dark:hover:border-emerald-500 bg-white dark:bg-neutral-900 transition duration-300 hover:shadow-md"
                         >

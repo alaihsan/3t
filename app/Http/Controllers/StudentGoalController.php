@@ -44,7 +44,9 @@ class StudentGoalController extends Controller
 
         // Get student goals created by this teacher
         $rawGoals = StudentGoal::where('created_by', $teacherId)
-            ->with(['student', 'classroom'])
+            ->with(['student', 'classroom', 'setorans' => function ($q) {
+                $q->orderBy('created_at', 'desc');
+            }])
             ->orderBy('created_at', 'desc')
             ->get();
 

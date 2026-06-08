@@ -1,7 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
-import { BookOpen, HelpCircle, GraduationCap, Users, History, FileText, CheckCircle, Search, MessageSquare, AlertTriangle } from 'lucide-react';
+import { BookOpen, HelpCircle, GraduationCap, Users, History, FileText, CheckCircle, Search, MessageSquare, AlertTriangle, ClipboardList, Target } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -130,6 +130,32 @@ export default function DocumentationIndex() {
                             </CardHeader>
                             <CardContent className="p-4 pt-0 text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
                                 Menu khusus bagi para Ustadz dan Ustadzah untuk saling berbagi masukan, kritik konstruktif, ide pengembangan aplikasi, atau melaporkan bug. Fitur ini mendukung operasi CRUD penuh: Anda dapat **membuat** usulan baru, **melihat** daftar masukan dari rekan guru lain, **mengubah** isi masukan Anda sendiri, atau **menghapusnya** secara aman.
+                            </CardContent>
+                        </Card>
+
+                        {/* Feature: Rekap Nilai Spreadsheet */}
+                        <Card className="border-neutral-200/60 dark:border-neutral-800 bg-white dark:bg-neutral-950 rounded-2xl shadow-sm overflow-hidden">
+                            <CardHeader className="p-4 pb-2">
+                                <CardTitle className="text-xs font-bold flex items-center gap-2 text-neutral-800 dark:text-neutral-200">
+                                    <ClipboardList className="h-4 w-4 text-emerald-600" />
+                                    Rekap Nilai (Spreadsheet & Ekspor Excel)
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-4 pt-0 text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
+                                Menu rekapitulasi nilai setoran mengaji murid per juz dan kelas. Menampilkan tabel grid spreadsheet interaktif dengan kolom (nomor & nama murid) serta baris (nama surah) yang otomatis dibekukan (freeze) saat digulir ke samping maupun ke bawah. Nilai setoran (rentang A sampai D) dapat diurutkan (sorting) per kolom surah. Seluruh lembar rekap nilai ini dapat diunduh langsung menjadi berkas Excel (.xlsx).
+                            </CardContent>
+                        </Card>
+
+                        {/* Feature: Multi-Program Kelas & Autocomplete */}
+                        <Card className="border-neutral-200/60 dark:border-neutral-800 bg-white dark:bg-neutral-950 rounded-2xl shadow-sm overflow-hidden">
+                            <CardHeader className="p-4 pb-2">
+                                <CardTitle className="text-xs font-bold flex items-center gap-2 text-neutral-800 dark:text-neutral-200">
+                                    <Target className="h-4 w-4 text-emerald-600" />
+                                    Pendaftaran Multi-Program Kelas & Autocomplete
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-4 pt-0 text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
+                                Memungkinkan satu murid untuk terdaftar di beberapa kelas/program sekaligus (Takhasus, Tahsin, dan Tahfizh). Pada kartu nama murid, program lain yang diikuti murid tersebut akan tersemat otomatis dengan lencana warna-warni (misalnya: <code className="font-mono bg-neutral-100 dark:bg-neutral-800 px-1 py-0.5 rounded text-emerald-650">Juga terdaftar di: Tahsin 7A</code>). Anda dapat menambahkan murid yang sudah ada di database ke kelas aktif menggunakan tombol Tambah Murid Terdaftar dengan sistem pencarian autocomplete nama murid secara instan.
                             </CardContent>
                         </Card>
                     </div>

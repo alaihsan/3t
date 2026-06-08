@@ -38,6 +38,11 @@ class StudentGoal extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function setorans(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(GoalSetoran::class, 'student_goal_id');
+    }
+
     public static $surahVerses = [
         1 => 7, 2 => 286, 3 => 200, 4 => 176, 5 => 120, 6 => 165, 7 => 206, 8 => 75, 9 => 129, 10 => 109,
         11 => 123, 12 => 111, 13 => 43, 14 => 52, 15 => 99, 16 => 128, 17 => 111, 18 => 110, 19 => 98, 20 => 135,

@@ -115,6 +115,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('classrooms/{classroom}/labels', [ClassroomController::class, 'addLabel'])->name('classrooms.add-label');
     Route::delete('labels/{label}', [ClassroomController::class, 'deleteLabel'])->name('classrooms.delete-label');
     Route::delete('classrooms/{classroom}/students/{student}', [ClassroomController::class, 'removeStudent'])->name('classrooms.remove-student');
+    Route::post('classrooms/{classroom}/students', [ClassroomController::class, 'addStudent'])->name('classrooms.add-student');
 
     // Reading Histories
     Route::get('reading-histories', [ReadingHistoryController::class, 'index'])->name('reading-histories.index');
@@ -143,6 +144,13 @@ Route::middleware(['auth'])->group(function () {
     Route::post('student-goals', [StudentGoalController::class, 'store'])->name('student-goals.store');
     Route::put('student-goals/{goal}', [StudentGoalController::class, 'update'])->name('student-goals.update');
     Route::delete('student-goals/{goal}', [StudentGoalController::class, 'destroy'])->name('student-goals.destroy');
+
+    // Student Goal Submissions (Setoran)
+    Route::post('goal-setorans', [\App\Http\Controllers\GoalSetoranController::class, 'store'])->name('goal-setorans.store');
+    Route::delete('goal-setorans/{setoran}', [\App\Http\Controllers\GoalSetoranController::class, 'destroy'])->name('goal-setorans.destroy');
+
+    // Score Reports (Rekap Nilai)
+    Route::get('rekap-nilai', [\App\Http\Controllers\ScoreReportController::class, 'index'])->name('score-reports.index');
 });
 
 require __DIR__.'/settings.php';

@@ -2,7 +2,7 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, useForm, router } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
-import { Target, Plus, CheckCircle, Clock, Trash2, ShieldAlert, ArrowRight, BookOpen } from 'lucide-react';
+import { Target, Plus, CheckCircle, Clock, Trash2, ShieldAlert, ArrowRight, BookOpen, Award, FileText, ChevronDown, ChevronUp } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,16 @@ interface Chapter {
     name_arabic: string;
 }
 
+interface GoalSetoran {
+    id: number;
+    student_goal_id: number;
+    surah_number: number;
+    verse_number: number;
+    grade: 'A' | 'B' | 'C' | 'D';
+    notes?: string;
+    created_at: string;
+}
+
 interface StudentGoal {
     id: number;
     student_id: number;
@@ -46,6 +56,7 @@ interface StudentGoal {
     logged_verses_count: number;
     progress_percentage: number;
     created_at: string;
+    setorans: GoalSetoran[];
 }
 
 interface GoalsIndexProps {
@@ -78,6 +89,19 @@ export default function GoalsIndex({ goals = [], classrooms = [], chapters = [] 
         target_surah_end: 1,
         target_verse_end: 7,
     });
+
+    // Setoran Form
+    const setoranForm = useForm({
+        student_goal_id: '',
+        surah_number: 1,
+        verse_number: 1,
+        grade: 'A' as 'A' | 'B' | 'C' | 'D',
+        notes: '',
+    });
+
+    const [isSetoranModalOpen, setIsSetoranModalOpen] = useState(false);
+    const [selectedGoalForSetoran, setSelectedGoalForSetoran] = useState<StudentGoal | null>(null);
+    const [expandedSetoranGoalIds, setExpandedSetoranGoalIds] = useState<Record<number, boolean>>({});
 
     // Delete Form
     const deleteForm = useForm();
@@ -130,6 +154,45 @@ export default function GoalsIndex({ goals = [], classrooms = [], chapters = [] 
         }, {
             preserveScroll: true,
         });
+    };
+
+    const triggerSetoran = (goal: StudentGoal) => {
+        setSelectedGoalForSetoran(goal);
+        // Default to the last setoran surah/verse if available, otherwise target start
+        const lastSetoran = goal.setorans && goal.setorans.length > 0 ? goal.setorans[0] : null;
+        setoranForm.setData({
+            student_goal_id: goal.id.toString(),
+            surah_number: lastSetoran ? lastSetoran.surah_number : goal.target_surah_start,
+            verse_number: lastSetoran ? lastSetoran.verse_number : goal.target_verse_start,
+            grade: 'A',
+            notes: '',
+        });
+        setIsSetoranModalOpen(true);
+    };
+
+    const handleSetoranSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setoranForm.post(route('goal-setorans.store'), {
+            onSuccess: () => {
+                setIsSetoranModalOpen(false);
+                setSelectedGoalForSetoran(null);
+                setoranForm.reset();
+            },
+        });
+    };
+
+    const handleDeleteSetoran = (setoranId: number) => {
+        if (!confirm('Apakah Anda yakin ingin menghapus catatan setoran ini?')) return;
+        router.delete(route('goal-setorans.destroy', { setoran: setoranId }), {
+            preserveScroll: true,
+        });
+    };
+
+    const toggleSetoranExpanded = (goalId: number) => {
+        setExpandedSetoranGoalIds((prev) => ({
+            ...prev,
+            [goalId]: !prev[goalId],
+        }));
     };
 
     const getChapterName = (id: number) => {
@@ -305,7 +368,7 @@ export default function GoalsIndex({ goals = [], classrooms = [], chapters = [] 
 
                                 <Button
                                     type="submit"
-                                    className="w-full bg-emerald-750 hover:bg-emerald-850 text-white font-bold text-xs py-2 rounded-xl transition duration-200 mt-2"
+                                    className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs py-2 rounded-xl transition duration-200 mt-2"
                                     disabled={createForm.processing}
                                 >
                                     {createForm.processing ? 'Menyimpan...' : 'Simpan Target'}
@@ -374,6 +437,13 @@ export default function GoalsIndex({ goals = [], classrooms = [], chapters = [] 
                                                     {/* Actions */}
                                                     <div className="flex items-center gap-1.5">
                                                         <button
+                                                            onClick={() => triggerSetoran(goal)}
+                                                            className="p-1.5 border border-neutral-200 dark:border-neutral-800 hover:border-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 rounded-lg text-neutral-500 hover:text-emerald-600 transition"
+                                                            title="Catat Setoran Bacaan"
+                                                        >
+                                                            <Award className="h-4 w-4 shrink-0" />
+                                                        </button>
+                                                        <button
                                                             onClick={() => toggleGoalStatus(goal, goal.status)}
                                                             className={`p-1.5 rounded-lg border transition ${
                                                                 goal.status === 'selesai'
@@ -401,7 +471,7 @@ export default function GoalsIndex({ goals = [], classrooms = [], chapters = [] 
                                                             <BookOpen className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
                                                             Rentang:
                                                         </span>
-                                                        <div className="flex items-center gap-1.5 font-semibold text-neutral-700 dark:text-neutral-300 text-[11px]">
+                                        <div className="flex items-center gap-1.5 font-semibold text-neutral-700 dark:text-neutral-300 text-[11px]">
                                                             <span>{getChapterName(goal.target_surah_start)} {goal.target_verse_start}</span>
                                                             <ArrowRight className="h-3 w-3 text-neutral-400" />
                                                             <span>{getChapterName(goal.target_surah_end)} {goal.target_verse_end}</span>
@@ -411,7 +481,7 @@ export default function GoalsIndex({ goals = [], classrooms = [], chapters = [] 
                                                     {/* Progress Bar */}
                                                     <div className="space-y-1">
                                                         <div className="flex items-center justify-between text-[10px] font-bold">
-                                                            <span className="text-neutral-400">Kemajuan Koreksi Bacaan</span>
+                                                            <span className="text-neutral-450">Kemajuan Koreksi Bacaan</span>
                                                             <span className={isCompleted ? 'text-emerald-600 dark:text-emerald-400' : 'text-neutral-500'}>
                                                                 {goal.progress_percentage}% ({goal.logged_verses_count}/{goal.total_verses_count} Ayat)
                                                             </span>
@@ -425,6 +495,100 @@ export default function GoalsIndex({ goals = [], classrooms = [], chapters = [] 
                                                             />
                                                         </div>
                                                     </div>
+
+                                                    {/* Latest Setoran */}
+                                                    {goal.setorans && goal.setorans.length > 0 ? (
+                                                        <div className="border-t border-neutral-200/50 dark:border-neutral-800/50 pt-2 flex items-center justify-between text-[10px]">
+                                                            <span className="text-neutral-450 flex items-center gap-1">
+                                                                <Award className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                                                                Setoran Terakhir:
+                                                            </span>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="font-bold text-neutral-700 dark:text-neutral-300">
+                                                                    {getChapterName(goal.setorans[0].surah_number)}: {goal.setorans[0].verse_number}
+                                                                </span>
+                                                                <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full ${
+                                                                    goal.setorans[0].grade === 'A'
+                                                                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-450'
+                                                                        : goal.setorans[0].grade === 'B'
+                                                                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-450'
+                                                                            : goal.setorans[0].grade === 'C'
+                                                                                ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-450'
+                                                                                : 'bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-450'
+                                                                }`}>
+                                                                    Nilai: {goal.setorans[0].grade}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="border-t border-neutral-200/50 dark:border-neutral-800/50 pt-2 text-center text-[10px] text-neutral-400 italic">
+                                                            Belum ada setoran dicatat.
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Expandable Setoran History */}
+                                                <div className="border-t border-neutral-100 dark:border-neutral-850 pt-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => toggleSetoranExpanded(goal.id)}
+                                                        className="w-full flex items-center justify-between text-[10px] text-neutral-500 hover:text-emerald-600 dark:hover:text-emerald-450 transition font-bold"
+                                                    >
+                                                        <span className="flex items-center gap-1">
+                                                            <FileText className="h-3.5 w-3.5 shrink-0 text-emerald-650 dark:text-emerald-450" />
+                                                            Riwayat Setoran ({goal.setorans ? goal.setorans.length : 0})
+                                                        </span>
+                                                        {expandedSetoranGoalIds[goal.id] ? (
+                                                            <ChevronUp className="h-3.5 w-3.5 shrink-0" />
+                                                        ) : (
+                                                            <ChevronDown className="h-3.5 w-3.5 shrink-0" />
+                                                        )}
+                                                    </button>
+
+                                                    {expandedSetoranGoalIds[goal.id] && (
+                                                        <div className="mt-2 space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                                                            {goal.setorans && goal.setorans.length > 0 ? (
+                                                                goal.setorans.map((setoran) => (
+                                                                    <div key={setoran.id} className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-850 rounded-lg p-2 flex items-start justify-between gap-2 text-[10px]">
+                                                                        <div className="space-y-0.5 w-full">
+                                                                            <div className="flex items-center justify-between">
+                                                                                <div className="flex items-center gap-1.5 font-semibold text-neutral-700 dark:text-neutral-300">
+                                                                                    <span>{getChapterName(setoran.surah_number)}: {setoran.verse_number}</span>
+                                                                                    <span className={`text-[8px] font-bold px-1.5 rounded-full ${
+                                                                                        setoran.grade === 'A'
+                                                                                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-450'
+                                                                                            : setoran.grade === 'B'
+                                                                                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-450'
+                                                                                                : setoran.grade === 'C'
+                                                                                                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-450'
+                                                                                                    : 'bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-450'
+                                                                                    }`}>
+                                                                                        {setoran.grade}
+                                                                                    </span>
+                                                                                </div>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => handleDeleteSetoran(setoran.id)}
+                                                                                    className="text-red-500 hover:text-red-700 p-0.5 hover:bg-red-50 dark:hover:bg-red-950/20 rounded transition"
+                                                                                    title="Hapus Catatan Setoran"
+                                                                                >
+                                                                                    <Trash2 className="h-3 w-3" />
+                                                                                </button>
+                                                                            </div>
+                                                                            {setoran.notes && (
+                                                                                <p className="text-neutral-500 italic font-normal text-[9px] mt-0.5">{setoran.notes}</p>
+                                                                            )}
+                                                                            <span className="text-[8px] text-neutral-400 block pt-0.5">
+                                                                                {new Date(setoran.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                ))
+                                                            ) : (
+                                                                <p className="text-center text-neutral-400 text-[10px] italic py-2">Belum ada riwayat setoran.</p>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 {/* Date indicators */}
@@ -512,6 +676,132 @@ export default function GoalsIndex({ goals = [], classrooms = [], chapters = [] 
                                 </Button>
                             </DialogFooter>
                         </div>
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            {/* RECORD SETORAN DIALOG */}
+            <Dialog open={isSetoranModalOpen} onOpenChange={setIsSetoranModalOpen}>
+                <DialogContent className="max-w-md bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6">
+                    <DialogHeader>
+                        <DialogTitle className="text-lg font-bold text-neutral-800 dark:text-neutral-200 flex items-center gap-2">
+                            <Award className="h-5 w-5 text-emerald-600 animate-bounce" />
+                            Catat Setoran Bacaan
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    {selectedGoalForSetoran && (
+                        <form onSubmit={handleSetoranSubmit} className="space-y-4 mt-2">
+                            {/* Student and Target Info */}
+                            <div className="bg-neutral-50 dark:bg-neutral-950 border border-neutral-150 dark:border-neutral-850 p-3 rounded-xl text-xs space-y-1">
+                                <p className="text-neutral-500">
+                                    Murid: <strong className="font-bold text-neutral-800 dark:text-neutral-200">{selectedGoalForSetoran.student.name}</strong>
+                                </p>
+                                <p className="text-neutral-500">
+                                    Target: <strong className="font-semibold text-neutral-700 dark:text-neutral-300">{selectedGoalForSetoran.target_name}</strong>
+                                </p>
+                                <p className="text-neutral-400 text-[10px]">
+                                    Rentang Target: {getChapterName(selectedGoalForSetoran.target_surah_start)} {selectedGoalForSetoran.target_verse_start} - {getChapterName(selectedGoalForSetoran.target_surah_end)} {selectedGoalForSetoran.target_verse_end}
+                                </p>
+                            </div>
+
+                            {/* Surah Dropdown */}
+                            <div className="space-y-1.5">
+                                <Label className="text-xs font-semibold text-neutral-600 dark:text-neutral-450">Surah</Label>
+                                <Select
+                                    value={setoranForm.data.surah_number.toString()}
+                                    onValueChange={(val) => setoranForm.setData('surah_number', parseInt(val, 10))}
+                                >
+                                    <SelectTrigger className="w-full bg-white dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-xs rounded-xl">
+                                        <SelectValue placeholder="Pilih Surah" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {chapters.map((ch) => (
+                                            <SelectItem key={ch.id} value={ch.id.toString()}>
+                                                {ch.id}. {ch.name_complex}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            {/* Verse Number Input */}
+                            <div className="space-y-1.5">
+                                <Label htmlFor="setoran_verse" className="text-xs font-semibold text-neutral-600 dark:text-neutral-450">Sampai Ayat</Label>
+                                <Input
+                                    id="setoran_verse"
+                                    type="number"
+                                    min={1}
+                                    value={setoranForm.data.verse_number}
+                                    onChange={(e) => setoranForm.setData('verse_number', parseInt(e.target.value, 10) || 1)}
+                                    className="bg-white dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-xs rounded-xl focus:ring-emerald-500 focus:border-emerald-500"
+                                />
+                                {setoranForm.errors.verse_number && (
+                                    <p className="text-xs text-red-500 mt-1">{setoranForm.errors.verse_number}</p>
+                                )}
+                            </div>
+
+                            {/* Grade Select A-D */}
+                            <div className="space-y-1.5">
+                                <Label className="text-xs font-semibold text-neutral-600 dark:text-neutral-450">Nilai (Rentang A sampai D)</Label>
+                                <div className="grid grid-cols-4 gap-2">
+                                    {(['A', 'B', 'C', 'D'] as const).map((g) => (
+                                        <button
+                                            key={g}
+                                            type="button"
+                                            onClick={() => setoranForm.setData('grade', g)}
+                                            className={`py-2 text-sm font-bold rounded-xl border transition-all duration-200 ${
+                                                setoranForm.data.grade === g
+                                                    ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm ring-2 ring-emerald-550/20'
+                                                    : 'border-neutral-200 hover:border-neutral-350 dark:border-neutral-800 bg-white dark:bg-neutral-950 text-neutral-600 dark:text-neutral-300'
+                                            }`}
+                                        >
+                                            {g}
+                                        </button>
+                                    ))}
+                                </div>
+                                {setoranForm.errors.grade && (
+                                    <p className="text-xs text-red-500 mt-1">{setoranForm.errors.grade}</p>
+                                )}
+                            </div>
+
+                            {/* Notes/Comments */}
+                            <div className="space-y-1.5">
+                                <Label htmlFor="setoran_notes" className="text-xs font-semibold text-neutral-600 dark:text-neutral-450">Catatan/Komentar (Opsional)</Label>
+                                <textarea
+                                    id="setoran_notes"
+                                    rows={3}
+                                    placeholder="Tulis catatan perkembangan setoran, misal: Tajwid baik, perlu lancarkan lagi..."
+                                    value={setoranForm.data.notes}
+                                    onChange={(e) => setoranForm.setData('notes', e.target.value)}
+                                    className="w-full bg-white dark:bg-neutral-950 border border-neutral-350 dark:border-neutral-800 text-xs rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-550 dark:focus:ring-emerald-450 focus:border-transparent text-neutral-800 dark:text-neutral-100"
+                                />
+                                {setoranForm.errors.notes && (
+                                    <p className="text-xs text-red-500 mt-1">{setoranForm.errors.notes}</p>
+                                )}
+                            </div>
+
+                            <DialogFooter className="pt-2 flex gap-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => {
+                                        setIsSetoranModalOpen(false);
+                                        setSelectedGoalForSetoran(null);
+                                    }}
+                                    className="text-xs border-neutral-300 dark:border-neutral-800 rounded-xl"
+                                >
+                                    Batal
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    className="text-xs bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-4 rounded-xl"
+                                    disabled={setoranForm.processing}
+                                >
+                                    {setoranForm.processing ? 'Menyimpan...' : 'Simpan Setoran'}
+                                </Button>
+                            </DialogFooter>
+                        </form>
                     )}
                 </DialogContent>
             </Dialog>

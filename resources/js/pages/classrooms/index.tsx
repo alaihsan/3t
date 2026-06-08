@@ -1,7 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, useForm } from '@inertiajs/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Plus, Users, Clipboard, Tag, Trash2, ShieldAlert, Sparkles, X, UserMinus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,6 +21,11 @@ interface Student {
     nis: string;
     name: string;
     goals?: StudentGoal[];
+    classrooms?: {
+        id: number;
+        name: string;
+        type: 'Takhasus' | 'Tahsin' | 'Tahfizh';
+    }[];
 }
 
 interface CustomLabel {
@@ -41,6 +46,7 @@ interface Classroom {
 
 interface ClassroomsIndexProps {
     classrooms: Classroom[];
+    allStudents?: Student[];
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -50,13 +56,13 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function ClassroomsIndex({ classrooms = [] }: ClassroomsIndexProps) {
+export default function ClassroomsIndex({ classrooms = [], allStudents = [] }: ClassroomsIndexProps) {
     const [selectedClass, setSelectedClass] = useState<Classroom | null>(classrooms[0] || null);
     const [activeTab, setActiveTab] = useState<'students' | 'labels' | 'import'>('students');
     
-    // Modals state
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [isAddStudentModalOpen, setIsAddStudentModalOpen] = useState(false);
     const [deleteConfig, setDeleteConfig] = useState<{
         type: 'classroom' | 'student' | 'label';
         id: number;
@@ -65,10 +71,38 @@ export default function ClassroomsIndex({ classrooms = [] }: ClassroomsIndexProp
     } | null>(null);
     const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
+    // Autocomplete states & ref
+    const [searchQuery, setSearchQuery] = useState('');
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const autocompleteRef = useRef<HTMLDivElement>(null);
+
+    // Sync selectedClass with updated props
+    useEffect(() => {
+        if (selectedClass) {
+            const updated = classrooms.find((c) => c.id === selectedClass.id);
+            if (updated) setSelectedClass(updated);
+        }
+    }, [classrooms]);
+
     // Reset tab to students when changing class selection
     useEffect(() => {
         setActiveTab('students');
+        setSearchQuery('');
+        setIsDropdownOpen(false);
     }, [selectedClass]);
+
+    // Click outside handler for autocomplete dropdown
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (autocompleteRef.current && !autocompleteRef.current.contains(event.target as Node)) {
+                setIsDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
 
     // Create Class Form
     const createForm = useForm({
@@ -85,6 +119,11 @@ export default function ClassroomsIndex({ classrooms = [] }: ClassroomsIndexProp
     // Add Label Form
     const labelForm = useForm({
         name: '',
+    });
+
+    // Add Student Form
+    const addStudentForm = useForm({
+        student_id: '',
     });
 
     const handleCreateClass = (e: React.FormEvent) => {
@@ -124,6 +163,49 @@ export default function ClassroomsIndex({ classrooms = [] }: ClassroomsIndexProp
                 if (updated) setSelectedClass(updated);
             },
         });
+    };
+
+    const handleAddStudent = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedClass) return;
+        addStudentForm.post(route('classrooms.add-student', { classroom: selectedClass.id }), {
+            onSuccess: () => {
+                setIsAddStudentModalOpen(false);
+                addStudentForm.reset();
+                setSearchQuery('');
+                setIsDropdownOpen(false);
+                const updated = classrooms.find((c) => c.id === selectedClass.id);
+                if (updated) setSelectedClass(updated);
+            },
+        });
+    };
+
+    // Reset autocomplete state on modal open/close
+    useEffect(() => {
+        if (!isAddStudentModalOpen) {
+            setSearchQuery('');
+            setIsDropdownOpen(false);
+            addStudentForm.reset();
+        }
+    }, [isAddStudentModalOpen]);
+
+    const availableStudents = selectedClass 
+        ? allStudents.filter(s => !selectedClass.students?.some(existing => existing.id === s.id))
+        : [];
+
+    const filteredAvailableStudents = availableStudents.filter(s =>
+        s.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const handleSearchChange = (val: string) => {
+        setSearchQuery(val);
+        setIsDropdownOpen(true);
+        const match = availableStudents.find(s => s.name.toLowerCase() === val.toLowerCase());
+        if (match) {
+            addStudentForm.setData('student_id', match.id.toString());
+        } else {
+            addStudentForm.setData('student_id', '');
+        }
     };
 
     // Trigger strict delete confirmation
@@ -337,9 +419,24 @@ export default function ClassroomsIndex({ classrooms = [] }: ClassroomsIndexProp
                                 {/* Tab 1: Students List Content */}
                                 {activeTab === 'students' && (
                                     <div className="flex-1 overflow-y-auto p-6 min-h-0">
+                                        <div className="flex items-center justify-between mb-4 shrink-0">
+                                            <span className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">
+                                                Daftar Murid ({selectedClass.students?.length || 0})
+                                            </span>
+                                            <Button
+                                                type="button"
+                                                onClick={() => setIsAddStudentModalOpen(true)}
+                                                className="bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-semibold px-3 py-1.5 flex items-center gap-1.5 shadow-sm active:scale-95 transition cursor-pointer"
+                                            >
+                                                <Plus className="h-3.5 w-3.5" />
+                                                Tambah Murid Terdaftar
+                                            </Button>
+                                        </div>
+
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             {selectedClass.students?.map((student) => {
                                                 const studentGoals = student.goals || [];
+                                                const otherClassrooms = student.classrooms?.filter((c) => c.id !== selectedClass.id) || [];
                                                 return (
                                                     <div
                                                         key={student.id}
@@ -350,8 +447,25 @@ export default function ClassroomsIndex({ classrooms = [] }: ClassroomsIndexProp
                                                                 <div className="font-semibold text-xs text-neutral-800 dark:text-neutral-200">
                                                                     {student.name}
                                                                 </div>
-                                                                <div className="text-[10px] text-neutral-450 mt-0.5">
-                                                                    NIS: {student.nis}
+                                                                <div className="text-[10px] text-neutral-450 mt-0.5 flex flex-col gap-0.5">
+                                                                    <div>NIS: {student.nis}</div>
+                                                                    {otherClassrooms.length > 0 && (
+                                                                        <div className="text-[10px] text-neutral-500 dark:text-neutral-400 mt-1">
+                                                                            <span className="font-medium">Juga terdaftar di: </span>
+                                                                            {otherClassrooms.map((c, idx) => (
+                                                                                <span key={c.id}>
+                                                                                    <span className={`font-semibold ${
+                                                                                        c.type === 'Takhasus'
+                                                                                            ? 'text-purple-600 dark:text-purple-400'
+                                                                                            : c.type === 'Tahsin'
+                                                                                                ? 'text-teal-600 dark:text-teal-400'
+                                                                                                : 'text-amber-600 dark:text-amber-500'
+                                                                                    }`}>{c.name}</span>
+                                                                                    {idx < otherClassrooms.length - 1 ? ', ' : ''}
+                                                                                </span>
+                                                                            ))}
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             </div>
                                                             <Button
@@ -595,7 +709,7 @@ export default function ClassroomsIndex({ classrooms = [] }: ClassroomsIndexProp
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="confirm_text" className="text-xs text-neutral-400">
+                                <Label htmlFor="confirm_text" className="text-xs text-neutral-450">
                                     Silakan ketik <strong className="text-neutral-800 dark:text-neutral-200">Hapus</strong> di bawah untuk melanjutkan:
                                 </Label>
                                 <Input
@@ -631,6 +745,84 @@ export default function ClassroomsIndex({ classrooms = [] }: ClassroomsIndexProp
                             </DialogFooter>
                         </div>
                     )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Add Student Dialog Modal */}
+            <Dialog open={isAddStudentModalOpen} onOpenChange={setIsAddStudentModalOpen}>
+                <DialogContent className="max-w-md bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6">
+                    <DialogHeader>
+                        <DialogTitle className="text-lg font-bold text-neutral-800 dark:text-neutral-100 flex items-center gap-2">
+                            <Plus className="h-5 w-5 text-emerald-600" />
+                            Tambah Murid Terdaftar
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    <form onSubmit={handleAddStudent} className="space-y-4 mt-2">
+                        <div className="space-y-1.5 relative" ref={autocompleteRef}>
+                            <Label htmlFor="student_search" className="text-xs text-neutral-400">Pilih Murid</Label>
+                            {availableStudents.length > 0 ? (
+                                <>
+                                    <Input
+                                        id="student_search"
+                                        type="text"
+                                        placeholder="Ketik nama murid untuk mencari..."
+                                        value={searchQuery}
+                                        onChange={(e) => handleSearchChange(e.target.value)}
+                                        onFocus={() => setIsDropdownOpen(true)}
+                                        className="w-full bg-white dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-xs rounded-xl"
+                                        autoComplete="off"
+                                    />
+                                    {isDropdownOpen && (
+                                        <div className="absolute z-50 left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-lg">
+                                            {filteredAvailableStudents.length > 0 ? (
+                                                filteredAvailableStudents.map((s) => (
+                                                    <button
+                                                        key={s.id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setSearchQuery(s.name);
+                                                            addStudentForm.setData('student_id', s.id.toString());
+                                                            setIsDropdownOpen(false);
+                                                        }}
+                                                        className="w-full text-left px-3 py-2 text-xs hover:bg-neutral-100 dark:hover:bg-neutral-800 transition text-neutral-700 dark:text-neutral-300 cursor-pointer"
+                                                    >
+                                                        {s.name}
+                                                    </button>
+                                                ))
+                                            ) : (
+                                                <div className="px-3 py-2 text-xs text-neutral-400 italic">
+                                                    Tidak ada murid yang cocok
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 p-3 rounded-xl">
+                                    Semua murid di database sudah terdaftar di kelas ini.
+                                </div>
+                            )}
+                        </div>
+
+                        <DialogFooter className="pt-2 flex gap-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setIsAddStudentModalOpen(false)}
+                                className="text-xs border-neutral-300 dark:border-neutral-800 rounded-xl"
+                            >
+                                Batal
+                            </Button>
+                            <Button
+                                type="submit"
+                                className="text-xs bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-4 rounded-xl cursor-pointer"
+                                disabled={addStudentForm.processing || !addStudentForm.data.student_id || availableStudents.length === 0}
+                            >
+                                {addStudentForm.processing ? 'Menambahkan...' : 'Tambah ke Kelas'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
                 </DialogContent>
             </Dialog>
         </AppLayout>
