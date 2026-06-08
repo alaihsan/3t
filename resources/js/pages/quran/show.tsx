@@ -214,6 +214,13 @@ const labelColors: Record<string, string> = {
     ungu: 'bg-purple-50 dark:bg-purple-950/30 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-900/50',
 };
 
+const TAJWEED_RULES = [
+    { id: 'mad', label: 'Mad (Merah)', classes: ['madda_normal', 'madda_permissible', 'madda_necessary', 'madda_obligatory'] },
+    { id: 'ghunnah', label: 'Ghunnah & Ikhfa (Hijau)', classes: ['ghunnah', 'idgham_ghunnah', 'ikhfa', 'iqlab'] },
+    { id: 'qalqalah', label: 'Qalqalah (Biru)', classes: ['qalqalah'] },
+    { id: 'wasl_shamsiyah', label: 'Hamzah Wasl & Idgham Bilaghunnah (Abu-abu)', classes: ['ham_wasl', 'laam_shamsiyah', 'idgham_without_ghunnah'] }
+];
+
 export default function QuranShow({ 
     chapter, 
     verses = [], 
@@ -238,6 +245,7 @@ export default function QuranShow({
     const [audioObject, setAudioObject] = useState<HTMLAudioElement | null>(null);
     const [autoplayNext, setAutoplayNext] = useState<boolean>(true);
     const [showTajweed, setShowTajweed] = useState<boolean>(false);
+    const [activeTajweedRules, setActiveTajweedRules] = useState<string[]>([]);
 
     // Padding helper for everyayah.com URLs
     const pad = (num: number, size: number) => {
@@ -306,6 +314,11 @@ export default function QuranShow({
     );
     const [activeClassroom, setActiveClassroom] = useState<Classroom | null>(null);
     const [highlightedVerse, setHighlightedVerse] = useState<number | null>(null);
+
+    const hideClasses = TAJWEED_RULES
+        .filter(rule => !activeTajweedRules.includes(rule.id))
+        .map(rule => `hide-tajweed-${rule.id}`)
+        .join(' ');
     
     // Modal State
     const [isLogModalOpen, setIsLogModalOpen] = useState(false);
@@ -384,10 +397,13 @@ export default function QuranShow({
             return;
         }
 
+        // Clean pause marks and non-arabic characters
+        const cleanWordText = wordText.replace(/[^\u0600-\u06FF\s]/g, '').replace(/[ۖۗۚۛۘۙۜ]/g, '').trim();
+
         setModalContext({
             verseNumber,
             wordPosition: wordIndex + 1,
-            wordText: wordText.replace(/[^\u0600-\u06FF\s]/g, ''), // Strip out punctuation if any
+            wordText: cleanWordText,
         });
         setSelectedLabels([]);
         
@@ -397,7 +413,7 @@ export default function QuranShow({
             surah_number: chapter.id,
             verse_number: verseNumber,
             word_position: wordIndex + 1,
-            word_text: wordText.replace(/[^\u0600-\u06FF\s]/g, ''),
+            word_text: cleanWordText,
             comments: '',
             labels: [],
         });
@@ -550,6 +566,60 @@ export default function QuranShow({
                         </div>
                     </div>
 
+                    {showTajweed && (
+                        <div className="px-6 py-3 bg-emerald-50/15 dark:bg-emerald-950/5 border-b border-neutral-200 dark:border-neutral-800/60 flex flex-col sm:flex-row sm:items-center gap-3 shrink-0 select-none animate-in slide-in-from-top duration-250">
+                            <span className="text-[10px] font-bold text-neutral-450 dark:text-neutral-500 uppercase tracking-wider">
+                                Hukum Tajwid Aktif:
+                            </span>
+                            <div className="flex flex-wrap gap-x-5 gap-y-2">
+                                {TAJWEED_RULES.map((rule) => {
+                                    const isChecked = activeTajweedRules.includes(rule.id);
+                                    return (
+                                        <label key={rule.id} className="flex items-center gap-1.5 text-xs font-semibold text-neutral-700 dark:text-neutral-350 cursor-pointer select-none">
+                                            <input
+                                                type="checkbox"
+                                                checked={isChecked}
+                                                onChange={(e) => {
+                                                    if (e.target.checked) {
+                                                        setActiveTajweedRules([...activeTajweedRules, rule.id]);
+                                                    } else {
+                                                        setActiveTajweedRules(activeTajweedRules.filter(id => id !== rule.id));
+                                                    }
+                                                }}
+                                                className="h-3.5 w-3.5 border-neutral-300 dark:border-neutral-750 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                            />
+                                            <span>{rule.label}</span>
+                                        </label>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Static style overrides for Tajweed toggle */}
+                    <style dangerouslySetInnerHTML={{ __html: `
+                        .hide-tajweed-mad tajweed.madda_normal,
+                        .hide-tajweed-mad tajweed.madda_permissible,
+                        .hide-tajweed-mad tajweed.madda_necessary,
+                        .hide-tajweed-mad tajweed.madda_obligatory {
+                            color: inherit !important;
+                        }
+                        .hide-tajweed-ghunnah tajweed.ghunnah,
+                        .hide-tajweed-ghunnah tajweed.idgham_ghunnah,
+                        .hide-tajweed-ghunnah tajweed.ikhfa,
+                        .hide-tajweed-ghunnah tajweed.iqlab {
+                            color: inherit !important;
+                        }
+                        .hide-tajweed-qalqalah tajweed.qalqalah {
+                            color: inherit !important;
+                        }
+                        .hide-tajweed-wasl_shamsiyah tajweed.ham_wasl,
+                        .hide-tajweed-wasl_shamsiyah tajweed.laam_shamsiyah,
+                        .hide-tajweed-wasl_shamsiyah tajweed.idgham_without_ghunnah {
+                            color: inherit !important;
+                        }
+                    ` }} />
+
                     {/* Surah Verses Container */}
                     <div className="flex-1 overflow-y-auto p-6 space-y-8 max-w-4xl mx-auto w-full">
                         {/* Surah Header Card */}
@@ -594,50 +664,73 @@ export default function QuranShow({
                         )}
 
                         {/* Verses List */}
-                        <div className="divide-y divide-neutral-100 dark:divide-neutral-900">
+                        <div className={`divide-y divide-neutral-100 dark:divide-neutral-900 ${hideClasses}`}>
                             {verses.map((verse) => {
-                                const arabicWords = verse.text_uthmani.split(' ');
+                                // Clean spaces before Arabic pause marks to align word boundaries
+                                const cleanPlain = verse.text_uthmani
+                                    .replace(/\s+([ۖۗۚۛۘۙۜ])/g, '$1')
+                                    .trim();
+                                const plainWords = cleanPlain ? cleanPlain.split(/\s+/) : [];
+
+                                let cleanTajweedText = (showTajweed && verse.text_uthmani_tajweed)
+                                    ? verse.text_uthmani_tajweed.replace(/<span class=["']?end["']?>.*?<\/span>\s*$/, '')
+                                    : '';
+                                cleanTajweedText = cleanTajweedText.replace(/\s+([ۖۗۚۛۘۙۜ])/g, '$1').trim();
+
+                                // Temporarily replace spaces inside <...> tags so space splitting doesn't break the HTML tags
+                                const processedTajweed = cleanTajweedText.replace(/<[^>]+>/g, (match) => {
+                                    return match.replace(/\s+/g, '__SPACE__');
+                                });
+
+                                const rawTajweedWords = processedTajweed ? processedTajweed.split(/\s+/) : [];
+                                const tajweedWords = rawTajweedWords.map((word) => word.replace(/__SPACE__/g, ' '));
+
+                                const wordsToRender = tajweedWords.length === plainWords.length
+                                    ? tajweedWords
+                                    : plainWords;
+
                                 const isHighlighted = highlightedVerse === verse.verse_number;
                                 const isPlaying = playingVerse === verse.verse_number;
                                 return (
                                     <div
                                             key={verse.id}
                                             id={`verse-container-${verse.verse_number}`}
-                                            className={`py-8 space-y-4 px-4 rounded-2xl border transition duration-500 ${
+                                            onDoubleClick={() => handleVerseDoubleClick(verse.verse_number)}
+                                            className={`py-8 space-y-4 px-4 rounded-2xl border transition duration-500 cursor-pointer select-none ${
                                                 isPlaying
                                                     ? 'bg-amber-50/40 dark:bg-amber-950/15 border-amber-400/80 shadow-md shadow-amber-500/5'
                                                     : isHighlighted
                                                         ? 'bg-amber-100/30 dark:bg-amber-950/20 border-amber-400/60 shadow-lg shadow-amber-500/5 animate-[pulse_2s_infinite]'
                                                         : 'hover:bg-neutral-50/30 dark:hover:bg-neutral-900/10 border-transparent'
                                             }`}
+                                            title="Klik 2x pada ayat atau nomor ayat untuk memberi catatan ayat lengkap"
                                         >
-                                        {/* Colored Tajwid Verse (Full flow, if enabled) */}
-                                        {showTajweed && verse.text_uthmani_tajweed && (
-                                            <div 
-                                                className="text-right font-arabic text-3xl font-bold leading-[4.5rem] tracking-wide mb-5 text-neutral-850 dark:text-neutral-100 select-none antialiased"
-                                                dangerouslySetInnerHTML={{ __html: verse.text_uthmani_tajweed }}
-                                            />
-                                        )}
-
                                         {/* Verse Arabic Text (Right Aligned) */}
                                         <div className="text-right flex flex-wrap flex-row-reverse gap-y-3 justify-start items-center leading-[3rem]">
-                                            {arabicWords.map((word, wordIdx) => (
+                                            {wordsToRender.map((word, wordIdx) => (
                                                 <span
                                                     key={wordIdx}
-                                                    onClick={() => handleWordClick(verse.verse_number, wordIdx, word)}
-                                                    className={`font-arabic text-3xl font-bold cursor-pointer px-1 rounded transition duration-200 ${
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleWordClick(verse.verse_number, wordIdx, plainWords[wordIdx]);
+                                                    }}
+                                                    onDoubleClick={(e) => e.stopPropagation()}
+                                                    className={`font-arabic text-3xl font-bold cursor-pointer px-1 rounded transition duration-250 ${
                                                         selectedClassroomId && selectedStudentId
                                                             ? 'hover:bg-emerald-100 dark:hover:bg-emerald-900/50 hover:text-emerald-900 dark:hover:text-emerald-100'
                                                             : 'cursor-default'
                                                     }`}
-                                                >
-                                                    {word}
-                                                </span>
+                                                    dangerouslySetInnerHTML={{ __html: word }}
+                                                />
                                             ))}
 
                                             {/* Verse End Marker (Double Clickable) */}
                                             <div 
-                                                onDoubleClick={() => handleVerseDoubleClick(verse.verse_number)}
+                                                onClick={(e) => e.stopPropagation()}
+                                                onDoubleClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleVerseDoubleClick(verse.verse_number);
+                                                }}
                                                 className={`inline-flex relative items-center justify-center h-10 w-10 shrink-0 font-arabic select-none cursor-pointer mx-2 rounded-full border border-amber-600/30 text-amber-600 dark:text-amber-500 text-xs font-bold transition hover:bg-amber-500/15 ${
                                                     selectedClassroomId && selectedStudentId ? 'cursor-pointer' : 'cursor-default'
                                                 }`}
@@ -649,7 +742,11 @@ export default function QuranShow({
                                             {/* Audio Play/Pause Button */}
                                             <button
                                                 type="button"
-                                                onClick={() => playVerseAudio(verse.verse_number)}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    playVerseAudio(verse.verse_number);
+                                                }}
+                                                onDoubleClick={(e) => e.stopPropagation()}
                                                 className={`inline-flex items-center justify-center h-9 w-9 shrink-0 rounded-full border transition duration-200 cursor-pointer ${
                                                     isPlaying
                                                         ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm hover:bg-emerald-700'
@@ -681,41 +778,109 @@ export default function QuranShow({
 
             {/* Assessment Comment Modal */}
             <Dialog open={isLogModalOpen} onOpenChange={setIsLogModalOpen}>
-                <DialogContent className="max-w-md rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-6">
+                <DialogContent className={`max-w-md rounded-2xl bg-white dark:bg-neutral-900 border p-6 transition-all duration-300 ${
+                    modalContext && !modalContext.wordPosition
+                        ? 'border-amber-400 dark:border-amber-600/50 shadow-[0_0_25px_-5px_rgba(245,158,11,0.25)]'
+                        : 'border-neutral-200 dark:border-neutral-800'
+                }`}>
                     <DialogHeader>
                         <DialogTitle className="text-lg font-bold text-neutral-800 dark:text-neutral-100 flex items-center gap-2">
-                            <BookOpen className="h-5 w-5 text-emerald-600" />
-                            Tambah Catatan Bacaan
+                            {modalContext && !modalContext.wordPosition ? (
+                                <>
+                                    <AlertTriangle className="h-5 w-5 text-amber-500 animate-pulse shrink-0" />
+                                    <span>Catatan Koreksi Seluruh Ayat</span>
+                                </>
+                            ) : (
+                                <>
+                                    <BookOpen className="h-5 w-5 text-emerald-600 shrink-0" />
+                                    <span>Tambah Catatan Bacaan</span>
+                                </>
+                            )}
                         </DialogTitle>
                     </DialogHeader>
 
                     {modalContext && (
                         <form onSubmit={submitLog} className="space-y-4 mt-2">
-                            <div className="bg-neutral-50 dark:bg-neutral-950 p-3 rounded-xl border border-neutral-100 dark:border-neutral-800 text-xs space-y-1">
-                                <div>
-                                    <span className="text-neutral-400">Murid: </span>
-                                    <strong className="text-neutral-800 dark:text-neutral-200 font-bold">
-                                        {activeClassroom?.students.find(s => s.id.toString() === selectedStudentId)?.name}
-                                    </strong>
-                                </div>
-                                <div>
-                                    <span className="text-neutral-400">Kelas: </span>
-                                    <strong className="text-neutral-800 dark:text-neutral-200 font-bold">{activeClassroom?.name} ({activeClassroom?.type})</strong>
-                                </div>
-                                <div>
-                                    <span className="text-neutral-400">Posisi: </span>
-                                    <strong className="text-neutral-800 dark:text-neutral-200 font-bold">
-                                        Surah {chapter.name_complex}, Ayat {modalContext.verseNumber}
-                                        {modalContext.wordPosition && ` (Kata ke-${modalContext.wordPosition})`}
-                                    </strong>
-                                </div>
-                                {modalContext.wordText && (
-                                    <div className="flex items-center gap-1.5 mt-1 pt-1.5 border-t border-neutral-200/40 dark:border-neutral-800/40">
-                                        <span className="text-neutral-400">Lafaz: </span>
-                                        <strong className="text-lg font-arabic text-emerald-600 font-bold leading-none">{modalContext.wordText}</strong>
+                            {/* Warning Banner & Student Info */}
+                            {modalContext && !modalContext.wordPosition ? (
+                                <>
+                                    {/* Beautiful Whole-Verse Warning Alert */}
+                                    <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/5 dark:from-amber-500/15 dark:to-orange-500/5 border border-amber-300/60 dark:border-amber-500/30 rounded-xl p-3.5 flex gap-3 relative overflow-hidden shadow-sm animate-in fade-in duration-300">
+                                        <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full blur-xl pointer-events-none" />
+                                        <div className="p-1.5 bg-amber-500/20 text-amber-700 dark:text-amber-400 rounded-lg shrink-0 flex items-center justify-center border border-amber-300/40 dark:border-amber-500/20">
+                                            <AlertTriangle className="h-4.5 w-4.5 animate-bounce" />
+                                        </div>
+                                        <div className="space-y-0.5">
+                                            <h4 className="font-bold text-xs text-amber-900 dark:text-amber-200">
+                                                Peringatan: Catatan Seluruh Ayat
+                                            </h4>
+                                            <p className="leading-normal opacity-90 text-neutral-600 dark:text-neutral-400 text-[10.5px]">
+                                                Anda menandai <strong>Ayat {modalContext.verseNumber}</strong> secara keseluruhan. Koreksi ini berlaku untuk satu ayat penuh, bukan kata tertentu.
+                                            </p>
+                                        </div>
                                     </div>
-                                )}
-                            </div>
+
+                                    {/* Beautiful Whole-Verse Info Card */}
+                                    <div className="bg-amber-500/5 dark:bg-amber-500/10 p-3.5 rounded-xl border border-amber-500/20 dark:border-amber-500/30 text-xs space-y-2 relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 w-16 h-16 bg-amber-500/5 rounded-full blur-lg pointer-events-none" />
+                                        <div className="flex justify-between items-center pb-2 border-b border-amber-500/20">
+                                            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                                                Detail Evaluasi Ayat
+                                            </span>
+                                            <span className="text-[10px] font-medium text-neutral-400">
+                                                Surah {chapter.name_complex}, Ayat {modalContext.verseNumber}
+                                            </span>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2 text-[11px]">
+                                            <div>
+                                                <span className="text-neutral-400 dark:text-neutral-500 block text-[9px] uppercase tracking-wider font-bold">Murid</span>
+                                                <strong className="text-neutral-800 dark:text-neutral-200 font-bold text-xs truncate block">
+                                                    {activeClassroom?.students.find(s => s.id.toString() === selectedStudentId)?.name}
+                                                </strong>
+                                            </div>
+                                            <div>
+                                                <span className="text-neutral-400 dark:text-neutral-500 block text-[9px] uppercase tracking-wider font-bold">Kelas</span>
+                                                <strong className="text-neutral-800 dark:text-neutral-200 font-bold text-xs truncate block">
+                                                    {activeClassroom?.name} ({activeClassroom?.type})
+                                                </strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </>
+                            ) : (
+                                /* Beautiful Word Info Card */
+                                <div className="bg-emerald-500/5 dark:bg-emerald-500/10 p-3.5 rounded-xl border border-emerald-500/20 dark:border-emerald-500/30 text-xs space-y-2 relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/5 rounded-full blur-lg pointer-events-none" />
+                                    <div className="flex justify-between items-center pb-2 border-b border-emerald-500/20">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                                            Penilaian Per Kata
+                                        </span>
+                                        <span className="text-[10px] font-medium text-neutral-400">
+                                            Surah {chapter.name_complex}, Ayat {modalContext.verseNumber}
+                                        </span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2 text-[11px]">
+                                        <div>
+                                            <span className="text-neutral-400 dark:text-neutral-500 block text-[9px] uppercase tracking-wider font-bold">Murid</span>
+                                            <strong className="text-neutral-800 dark:text-neutral-200 font-bold text-xs truncate block">
+                                                {activeClassroom?.students.find(s => s.id.toString() === selectedStudentId)?.name}
+                                            </strong>
+                                        </div>
+                                        <div>
+                                            <span className="text-neutral-400 dark:text-neutral-500 block text-[9px] uppercase tracking-wider font-bold">Kelas</span>
+                                            <strong className="text-neutral-800 dark:text-neutral-200 font-bold text-xs truncate block">
+                                                {activeClassroom?.name} ({activeClassroom?.type})
+                                            </strong>
+                                        </div>
+                                    </div>
+                                    {modalContext.wordText && (
+                                        <div className="flex items-center justify-between mt-1 pt-2 border-t border-emerald-500/20">
+                                            <span className="text-neutral-500 dark:text-neutral-400 text-[10px] font-bold uppercase">Lafaz Terpilih</span>
+                                            <strong className="text-xl font-arabic text-emerald-650 dark:text-emerald-400 font-bold leading-none">{modalContext.wordText}</strong>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             {/* Correction Labels */}
                             <div className="space-y-2">
@@ -730,7 +895,11 @@ export default function QuranShow({
                                                     id={`label-${label.id}`}
                                                     checked={isChecked}
                                                     onCheckedChange={(checked) => handleLabelChange(label.name, checked === true)}
-                                                    className="border-neutral-300 dark:border-neutral-700 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
+                                                    className={`border-neutral-300 dark:border-neutral-700 transition-colors duration-200 ${
+                                                        modalContext && !modalContext.wordPosition
+                                                            ? 'data-[state=checked]:bg-amber-600 data-[state=checked]:border-amber-600'
+                                                            : 'data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600'
+                                                    }`}
                                                 />
                                                 <Label 
                                                     htmlFor={`label-${label.id}`} 
@@ -775,7 +944,11 @@ export default function QuranShow({
                                 </Button>
                                 <Button
                                     type="submit"
-                                    className="text-xs bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-4 rounded-xl"
+                                    className={`text-xs text-white font-bold px-4 rounded-xl transition-all duration-200 ${
+                                        modalContext && !modalContext.wordPosition
+                                            ? 'bg-amber-600 hover:bg-amber-700 active:bg-amber-800 shadow-sm shadow-amber-500/10'
+                                            : 'bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 shadow-sm shadow-emerald-500/10'
+                                    }`}
                                     disabled={processing}
                                 >
                                     {processing ? 'Menyimpan...' : 'Simpan Catatan'}
