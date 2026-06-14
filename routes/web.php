@@ -32,48 +32,109 @@ Route::middleware(['auth'])->group(function () {
         $studentCount = $students->count();
         $logCount = \App\Models\ReadingHistory::where('logged_by', $teacherId)->count();
 
-        // Weekly activity calculation for analytic dashboard
-        $weeklyActivity = [];
-        for ($i = 6; $i >= 0; $i--) {
-            $date = now()->subDays($i)->format('Y-m-d');
-            $englishDay = now()->subDays($i)->format('l');
-            $shortDays = [
-                'Sunday' => 'Min', 'Monday' => 'Sen', 'Tuesday' => 'Sel', 'Wednesday' => 'Rab',
-                'Thursday' => 'Kam', 'Friday' => 'Jum', 'Saturday' => 'Sab'
-            ];
-            $dayLabel = $shortDays[$englishDay] ?? substr($englishDay, 0, 3);
-            
-            $count = \App\Models\ReadingHistory::where('logged_by', $teacherId)
-                ->whereDate('created_at', $date)
-                ->count();
-            
-            $weeklyActivity[] = [
-                'day' => $dayLabel,
-                'count' => $count
-            ];
-        }
-
-        // Label distribution calculation for donut chart
-        $histories = \App\Models\ReadingHistory::where('logged_by', $teacherId)->get();
-        $labelCounts = [];
-        foreach ($histories as $history) {
-            if (is_array($history->labels)) {
-                foreach ($history->labels as $label) {
-                    $labelCounts[$label] = ($labelCounts[$label] ?? 0) + 1;
+        // Fetch all teachers with counts of logged notes and labels
+        $teachers = \App\Models\User::all()->map(function ($user) {
+            $notesCount = \App\Models\ReadingHistory::where('logged_by', $user->id)->count();
+            $histories = \App\Models\ReadingHistory::where('logged_by', $user->id)->get();
+            $labelsCount = 0;
+            foreach ($histories as $h) {
+                if (is_array($h->labels)) {
+                    $labelsCount += count($h->labels);
                 }
             }
-        }
-        
-        $correctionLabels = \App\Models\CorrectionLabel::where('teacher_id', $teacherId)->get();
-        $labelDistribution = [];
-        foreach ($correctionLabels as $cLabel) {
-            $count = $labelCounts[$cLabel->name] ?? 0;
-            $labelDistribution[] = [
-                'name' => $cLabel->name,
-                'color' => $cLabel->color,
-                'count' => $count
+            return [
+                'id' => $user->id,
+                'name' => $user->name,
+                'username' => $user->username,
+                'email' => $user->email,
+                'notes_count' => $notesCount,
+                'labels_count' => $labelsCount,
             ];
+        });
+
+        // Fetch all reading history entries from the past 365 days with student and teacher details
+        $historiesForGraph = \App\Models\ReadingHistory::with(['student:id,name', 'teacher:id,name'])
+            ->where('created_at', '>=', now()->subDays(365))
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($history) {
+                return [
+                    'id' => $history->id,
+                    'date' => $history->created_at->format('Y-m-d'),
+                    'student_name' => $history->student->name ?? 'Murid',
+                    'classroom_id' => $history->classroom_id,
+                    'surah_number' => $history->surah_number,
+                    'verse_number' => $history->verse_number,
+                    'comments' => $history->comments,
+                    'labels' => $history->labels ?? [],
+                    'logged_by' => $history->logged_by,
+                    'teacher_name' => $history->teacher->name ?? 'Guru',
+                ];
+            });
+
+        // Compute flat contributions list for fast loading
+        $contributionData = [];
+        foreach ($historiesForGraph as $history) {
+            $date = $history['date'];
+            $teacherId = $history['logged_by'];
+            $labelsCount = count($history['labels']);
+            
+            if (!isset($contributionData[$date])) {
+                $contributionData[$date] = [];
+            }
+            if (!isset($contributionData[$date][$teacherId])) {
+                $contributionData[$date][$teacherId] = [
+                    'notes_count' => 0,
+                    'labels_count' => 0,
+                ];
+            }
+            $contributionData[$date][$teacherId]['notes_count']++;
+            $contributionData[$date][$teacherId]['labels_count'] += $labelsCount;
         }
+
+        $flatContributions = [];
+        foreach ($contributionData as $date => $teachersMap) {
+            foreach ($teachersMap as $teacherId => $counts) {
+                $flatContributions[] = [
+                    'date' => $date,
+                    'teacher_id' => $teacherId,
+                    'notes_count' => $counts['notes_count'],
+                    'labels_count' => $counts['labels_count'],
+                ];
+            }
+        }
+
+        // Fetch correction labels name-to-color mapping across all teachers
+        $correctionLabels = \App\Models\CorrectionLabel::select('name', 'color')
+            ->distinct()
+            ->get();
+        
+        $labelColorsMap = [];
+        foreach ($correctionLabels as $cLabel) {
+            $labelColorsMap[strtolower($cLabel->name)] = $cLabel->color;
+        }
+
+        // Compute label distribution grouped by teacher
+        $labelDistribution = [];
+        foreach ($historiesForGraph as $history) {
+            $teacherId = $history['logged_by'];
+            foreach ($history['labels'] as $label) {
+                $normalizedName = strtolower($label);
+                $color = $labelColorsMap[$normalizedName] ?? 'hitam';
+                
+                $key = $label . '_' . $teacherId;
+                if (!isset($labelDistribution[$key])) {
+                    $labelDistribution[$key] = [
+                        'name' => $label,
+                        'color' => $color,
+                        'count' => 0,
+                        'teacher_id' => $teacherId
+                    ];
+                }
+                $labelDistribution[$key]['count']++;
+            }
+        }
+        $labelDistribution = array_values($labelDistribution);
 
         // Fetch top 5 active student goals and calculate their progress percentages
         $activeGoals = \App\Models\StudentGoal::where('created_by', $teacherId)
@@ -97,8 +158,10 @@ Route::middleware(['auth'])->group(function () {
             'classrooms' => $classrooms,
             'students' => $students,
             'chapters' => $chapters,
-            'weeklyActivity' => $weeklyActivity,
+            'teachers' => $teachers,
+            'flatContributions' => $flatContributions,
             'labelDistribution' => $labelDistribution,
+            'historiesForGraph' => $historiesForGraph,
             'activeGoals' => $activeGoals,
         ]);
     })->name('dashboard');

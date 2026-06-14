@@ -61,12 +61,18 @@ class QuranController extends Controller
             ->orderBy('name')
             ->get();
 
+        // Fetch active student goals for this teacher
+        $activeGoals = \App\Models\StudentGoal::where('created_by', auth()->id())
+            ->where('status', 'aktif')
+            ->get();
+
         return Inertia::render('quran/show', [
             'chapter' => $currentChapter,
             'verses' => $verses,
             'classrooms' => $classrooms,
             'correctionLabels' => $correctionLabels,
             'chapters' => $chapters, // For side quick-navigation
+            'activeGoals' => $activeGoals,
         ]);
     }
 }

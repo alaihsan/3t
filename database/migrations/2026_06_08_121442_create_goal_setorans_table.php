@@ -15,8 +15,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('student_goal_id')->constrained('student_goals')->onDelete('cascade');
             $table->integer('surah_number');
-            $table->integer('verse_number');
-            $table->string('grade'); // A, B, C, D
+            $table->integer('verse_number')->nullable();
+            $table->string('grade')->nullable(); // A, B, C, D
             $table->text('notes')->nullable();
             $table->foreignId('logged_by')->constrained('users')->onDelete('cascade');
             $table->timestamps();

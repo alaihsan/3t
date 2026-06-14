@@ -29,7 +29,7 @@ interface Chapter {
 interface ScoreReportProps {
     classrooms: Classroom[];
     students: Student[];
-    scores: Record<number, Record<number, 'A' | 'B' | 'C' | 'D'>>;
+    scores: Record<number, Record<number, string>>;
     chapters: Chapter[];
     filters: {
         classroom_id: number | null;
@@ -169,8 +169,18 @@ export default function ScoreReport({ classrooms = [], students = [], scores = {
             if (!gradeB) return -1;
             
             const weights: Record<string, number> = { A: 1, B: 2, C: 3, D: 4 };
-            const weightA = weights[gradeA] || 5;
-            const weightB = weights[gradeB] || 5;
+            const getWeight = (g: string) => {
+                if (weights[g] !== undefined) return weights[g];
+                // Check if it is a verse number, like "Ayt 12"
+                const match = g.match(/\d+/);
+                if (match) {
+                    return 100 + parseInt(match[0], 10);
+                }
+                return 1000;
+            };
+            
+            const weightA = getWeight(gradeA);
+            const weightB = getWeight(gradeB);
             
             if (weightA !== weightB) {
                 return direction === 'asc' ? weightA - weightB : weightB - weightA;
@@ -182,18 +192,26 @@ export default function ScoreReport({ classrooms = [], students = [], scores = {
     });
 
     // Helper to get grade styling
-    const getGradeBadge = (grade: 'A' | 'B' | 'C' | 'D' | undefined) => {
+    const getGradeBadge = (grade: string | undefined) => {
         if (!grade) return <span className="text-neutral-300 dark:text-neutral-700">-</span>;
         
-        const colors = {
+        const colors: Record<string, string> = {
             A: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900',
             B: 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-400 border border-blue-200 dark:border-blue-900',
             C: 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-900',
             D: 'bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-400 border border-red-200 dark:border-red-900',
         };
         
+        if (colors[grade] !== undefined) {
+            return (
+                <span className={`inline-flex items-center justify-center font-bold text-xs px-2 py-0.5 rounded-md min-w-[1.75rem] ${colors[grade]}`}>
+                    {grade}
+                </span>
+            );
+        }
+        
         return (
-            <span className={`inline-flex items-center justify-center font-bold text-xs px-2 py-0.5 rounded-md min-w-[1.75rem] ${colors[grade]}`}>
+            <span className="inline-flex items-center justify-center font-semibold text-[10px] px-1.5 py-0.5 rounded-md bg-neutral-100 text-neutral-800 dark:bg-neutral-800 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700 min-w-[2.25rem] truncate max-w-[4rem]">
                 {grade}
             </span>
         );

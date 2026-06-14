@@ -70,7 +70,11 @@ class ScoreReportController extends Controller
                 foreach ($setorans as $setoran) {
                     $studentId = $setoran->studentGoal->student_id;
                     $surahNum = $setoran->surah_number;
-                    $scores[$studentId][$surahNum] = $setoran->grade;
+                    if ($setoran->verse_number !== null && $setoran->verse_number !== '') {
+                        $scores[$studentId][$surahNum] = 'Ayt ' . $setoran->verse_number;
+                    } else {
+                        $scores[$studentId][$surahNum] = $setoran->grade;
+                    }
                 }
             }
         }

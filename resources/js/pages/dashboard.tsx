@@ -1,9 +1,23 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/react';
-import { useState, useEffect } from 'react';
-import { BookOpen, Users, History, GraduationCap, ChevronRight, LayoutGrid, Search, BookOpenCheck, School, Tag } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { BookOpen, Users, History, GraduationCap, ChevronRight, LayoutGrid, Search, BookOpenCheck, School, Tag, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from '@/components/ui/dialog';
 
 interface Student {
     id: number;
@@ -28,6 +42,42 @@ interface Chapter {
     revelation_place: string;
 }
 
+interface Teacher {
+    id: number;
+    name: string;
+    username: string;
+    email: string;
+    notes_count: number;
+    labels_count: number;
+}
+
+interface Contribution {
+    date: string;
+    teacher_id: number;
+    notes_count: number;
+    labels_count: number;
+}
+
+interface ReadingHistory {
+    id: number;
+    date: string;
+    student_name: string;
+    classroom_id: number;
+    surah_number: number;
+    verse_number: number;
+    comments: string;
+    labels: string[];
+    logged_by: number;
+    teacher_name: string;
+}
+
+interface LabelDistributionItem {
+    name: string;
+    color: string;
+    count: number;
+    teacher_id: number;
+}
+
 interface DashboardProps {
     classCount: number;
     studentCount: number;
@@ -35,154 +85,13 @@ interface DashboardProps {
     classrooms: Classroom[];
     students: Student[];
     chapters: Chapter[];
-    weeklyActivity?: { day: string; count: number }[];
-    labelDistribution?: { name: string; color: string; count: number }[];
+    teachers: Teacher[];
+    flatContributions: Contribution[];
+    labelDistribution: LabelDistributionItem[];
+    historiesForGraph: ReadingHistory[];
     activeGoals?: any[];
 }
 
-const BarChart = ({ data = [] }: { data: { day: string; count: number }[] }) => {
-    const maxVal = Math.max(...data.map(d => d.count), 5); // Fallback to 5
-    const chartHeight = 110;
-    const paddingBottom = 20;
-    const width = 320;
-    const barWidth = 20;
-    const gap = 18;
-
-    return (
-        <div className="w-full flex flex-col items-center">
-            <svg viewBox={`0 0 ${width} ${chartHeight + paddingBottom}`} className="w-full max-w-sm h-32">
-                {data.map((item, idx) => {
-                    const x = idx * (barWidth + gap) + 32;
-                    const barHeight = (item.count / maxVal) * chartHeight;
-                    const y = chartHeight - barHeight;
-                    return (
-                        <g key={idx} className="group cursor-pointer">
-                            <title>{`${item.count} catatan`}</title>
-                            <rect
-                                x={x}
-                                y={y}
-                                width={barWidth}
-                                height={barHeight}
-                                rx={3}
-                                className="fill-emerald-600 dark:fill-emerald-500 hover:fill-emerald-550 transition duration-200"
-                            />
-                            <text
-                                x={x + barWidth / 2}
-                                y={y - 4}
-                                textAnchor="middle"
-                                className="text-[9px] font-bold fill-neutral-700 dark:fill-neutral-300 opacity-0 group-hover:opacity-100 transition duration-200"
-                            >
-                                {item.count}
-                            </text>
-                            <text
-                                x={x + barWidth / 2}
-                                y={chartHeight + 12}
-                                textAnchor="middle"
-                                className="text-[9px] font-semibold fill-neutral-400 dark:fill-neutral-500"
-                            >
-                                {item.day}
-                            </text>
-                        </g>
-                    );
-                })}
-                <line
-                    x1="15"
-                    y1={chartHeight}
-                    x2={width - 15}
-                    y2={chartHeight}
-                    className="stroke-neutral-200 dark:stroke-neutral-800"
-                    strokeWidth="1"
-                />
-            </svg>
-        </div>
-    );
-};
-
-const DonutChart = ({ data = [] }: { data: { name: string; color: string; count: number }[] }) => {
-    const total = data.reduce((acc, d) => acc + d.count, 0);
-    const radius = 30;
-    const circ = 2 * Math.PI * radius; // ~188.5
-    const strokeWidth = 8;
-    const viewSize = 80;
-    const center = viewSize / 2;
-
-    const labelColors: Record<string, string> = {
-        merah: '#ef4444',
-        kuning: '#f59e0b',
-        hijau: '#10b981',
-        hitam: '#6b7280',
-        biru: '#3b82f6',
-        orange: '#f97316',
-        ungu: '#8b5cf6',
-    };
-
-    let accumulatedPercentage = 0;
-
-    return (
-        <div className="flex flex-col sm:flex-row items-center gap-4 justify-center w-full">
-            {total > 0 ? (
-                <>
-                    <div className="relative h-24 w-24 shrink-0">
-                        <svg viewBox={`0 0 ${viewSize} ${viewSize}`} className="w-full h-full transform -rotate-90">
-                            {data.map((item, idx) => {
-                                if (item.count === 0) return null;
-                                const pct = item.count / total;
-                                const strokeLength = pct * circ;
-                                const strokeOffset = circ - strokeLength;
-                                const dashOffset = (accumulatedPercentage / 100) * circ;
-                                accumulatedPercentage += pct * 100;
-
-                                const colorHex = labelColors[item.color] || '#6b7280';
-
-                                return (
-                                    <circle
-                                        key={idx}
-                                        cx={center}
-                                        cy={center}
-                                        r={radius}
-                                        fill="transparent"
-                                        stroke={colorHex}
-                                        strokeWidth={strokeWidth}
-                                        strokeDasharray={circ}
-                                        strokeDashoffset={-dashOffset}
-                                        className="transition-all duration-300 hover:stroke-[10px]"
-                                    >
-                                        <title>{`${item.name}: ${item.count} (${Math.round(pct * 100)}%)`}</title>
-                                    </circle>
-                                );
-                            })}
-                            <circle
-                                cx={center}
-                                cy={center}
-                                r={radius - strokeWidth / 2}
-                                className="fill-white dark:fill-neutral-900"
-                            />
-                        </svg>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none">
-                            <span className="text-[8px] text-neutral-400 dark:text-neutral-500 font-bold uppercase tracking-wider">Total</span>
-                            <span className="text-sm font-extrabold text-neutral-800 dark:text-neutral-200 leading-none mt-0.5">{total}</span>
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-1.5 text-[10px] flex-1">
-                        {data.map((item, idx) => {
-                            if (item.count === 0) return null;
-                            const colorHex = labelColors[item.color] || '#6b7280';
-                            return (
-                                <div key={idx} className="flex items-center gap-1 min-w-0">
-                                    <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: colorHex }} />
-                                    <span className="truncate text-neutral-700 dark:text-neutral-300 font-medium">{item.name}</span>
-                                    <span className="text-neutral-400 font-bold">({item.count})</span>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </>
-            ) : (
-                <p className="text-[10px] text-neutral-400 italic py-8 text-center w-full">Belum ada label koreksi yang digunakan dalam catatan riwayat bacaan.</p>
-            )}
-        </div>
-    );
-};
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -231,12 +140,102 @@ export default function Dashboard({
     classrooms = [],
     students = [],
     chapters = [],
-    weeklyActivity = [],
+    teachers = [],
+    flatContributions = [],
     labelDistribution = [],
+    historiesForGraph = [],
     activeGoals = []
 }: DashboardProps) {
     const { auth } = usePage<SharedData>().props;
     const teacherName = auth.user?.name || 'Ustadz';
+
+    const [selectedTeacherId, setSelectedTeacherId] = useState<number | null>(null);
+    const [metric, setMetric] = useState<'notes' | 'labels'>('notes');
+    const [selectedCellDate, setSelectedCellDate] = useState<string | null>(null);
+    const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+
+    // Format date string to YYYY-MM-DD
+    const formatDateString = (date: Date) => {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    };
+
+    // Calculate dynamic counts lookup map for the grid
+    const contributionMap = useMemo(() => {
+        const map = new Map<string, number>();
+        flatContributions.forEach((contrib) => {
+            if (selectedTeacherId === null || contrib.teacher_id === selectedTeacherId) {
+                const dateStr = contrib.date;
+                const count = metric === 'notes' ? contrib.notes_count : contrib.labels_count;
+                map.set(dateStr, (map.get(dateStr) || 0) + count);
+            }
+        });
+        return map;
+    }, [flatContributions, selectedTeacherId, metric]);
+
+    // Generate contribution calendar grid (last 365 days ending today)
+    const { weeks, monthLabels } = useMemo(() => {
+        const range: Date[] = [];
+        const today = new Date();
+        for (let i = 364; i >= 0; i--) {
+            const d = new Date(today);
+            d.setDate(today.getDate() - i);
+            range.push(d);
+        }
+
+        const weeksGrid: (Date | null)[][] = [];
+        let currentWeek: (Date | null)[] = [];
+
+        // Pad start of first week
+        const firstDayOfWeek = range[0].getDay();
+        for (let i = 0; i < firstDayOfWeek; i++) {
+            currentWeek.push(null);
+        }
+
+        range.forEach((date) => {
+            currentWeek.push(date);
+            if (currentWeek.length === 7) {
+                weeksGrid.push(currentWeek);
+                currentWeek = [];
+            }
+        });
+
+        if (currentWeek.length > 0) {
+            while (currentWeek.length < 7) {
+                currentWeek.push(null);
+            }
+            weeksGrid.push(currentWeek);
+        }
+
+        // Compute month labels with column indexes
+        const labels: { text: string; colIndex: number }[] = [];
+        let lastMonth = -1;
+        weeksGrid.forEach((week, wIdx) => {
+            const firstDate = week.find((d) => d !== null);
+            if (firstDate) {
+                const m = firstDate.getMonth();
+                if (m !== lastMonth) {
+                    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+                    labels.push({ text: monthNames[m], colIndex: wIdx });
+                    lastMonth = m;
+                }
+            }
+        });
+
+        return { weeks: weeksGrid, monthLabels: labels };
+    }, []);
+
+    // Get color based on contribution count
+    const getCellColor = (count: number) => {
+        if (count === 0) return 'bg-neutral-100 dark:bg-neutral-800/60';
+        if (count <= 1) return 'bg-emerald-100 dark:bg-emerald-900/30';
+        if (count <= 3) return 'bg-emerald-300 dark:bg-emerald-700/50';
+        if (count <= 5) return 'bg-emerald-500 dark:bg-emerald-500/80';
+        return 'bg-emerald-750 dark:bg-emerald-400';
+    };
+
 
     // Quotes Typing and Rotation Logic
     const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
@@ -543,33 +542,307 @@ export default function Dashboard({
                 </div>
 
                 {/* Analytic Dashboard */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Weekly Activity Chart Card */}
-                    <Card className="border-neutral-200/60 dark:border-neutral-800 rounded-2xl bg-white dark:bg-neutral-900 shadow-sm">
-                        <CardHeader className="pb-3 border-b border-neutral-100 dark:border-neutral-800/80">
-                            <CardTitle className="text-xs font-bold text-neutral-400 uppercase tracking-wider flex items-center gap-1.5">
-                                <History className="h-4 w-4 text-emerald-600" />
-                                Aktivitas Penginputan Catatan (7 Hari Terakhir)
-                            </CardTitle>
+                <div className="grid grid-cols-1 gap-6">
+                    {/* Contribution Calendar Graph */}
+                    <Card className="border-neutral-200/60 dark:border-neutral-800 rounded-2xl bg-white dark:bg-neutral-900 shadow-md overflow-hidden">
+                        <CardHeader className="pb-4 border-b border-neutral-150 dark:border-neutral-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-neutral-50/40 dark:bg-neutral-900/40">
+                            <div>
+                                <CardTitle className="text-sm font-extrabold text-neutral-800 dark:text-neutral-100 flex items-center gap-2">
+                                    <History className="h-4.5 w-4.5 text-emerald-600 dark:text-emerald-400" />
+                                    Grafik Kontribusi Guru & Aktivitas Bimbingan
+                                </CardTitle>
+                                <p className="text-[10px] text-neutral-450 dark:text-neutral-450 mt-1 font-semibold">
+                                    Visualisasi aktivitas penginputan catatan dan pelabelan koreksi dari seluruh guru.
+                                </p>
+                            </div>
+                            
+                            {/* Metric and Mode Selectors */}
+                            <div className="flex flex-wrap items-center gap-2 select-none self-start sm:self-center">
+                                <div className="flex bg-neutral-100 dark:bg-neutral-800 rounded-lg p-0.5 text-[10px] font-bold">
+                                    <button
+                                        type="button"
+                                        onClick={() => setMetric('notes')}
+                                        className={`px-3 py-1 rounded-md transition-all duration-200 cursor-pointer ${
+                                            metric === 'notes'
+                                                ? 'bg-white dark:bg-neutral-900 text-emerald-650 dark:text-emerald-400 shadow-xs'
+                                                : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300'
+                                        }`}
+                                    >
+                                        Catatan Masuk
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setMetric('labels')}
+                                        className={`px-3 py-1 rounded-md transition-all duration-200 cursor-pointer ${
+                                            metric === 'labels'
+                                                ? 'bg-white dark:bg-neutral-900 text-emerald-650 dark:text-emerald-400 shadow-xs'
+                                                : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300'
+                                        }`}
+                                    >
+                                        Label Koreksi
+                                    </button>
+                                </div>
+                                {selectedTeacherId !== null && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedTeacherId(null)}
+                                        className="px-2.5 py-1 border border-neutral-200 dark:border-neutral-850 rounded-lg text-[10px] font-bold text-emerald-600 dark:text-emerald-450 hover:bg-neutral-50 dark:hover:bg-neutral-850 cursor-pointer transition duration-150"
+                                    >
+                                        Semua Guru
+                                    </button>
+                                )}
+                            </div>
                         </CardHeader>
-                        <CardContent className="pt-4 flex items-center justify-center min-h-[130px]">
-                            <BarChart data={weeklyActivity} />
+                        
+                        <CardContent className="p-6">
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                {/* Calendar Grid area */}
+                                <div className="lg:col-span-2 flex flex-col gap-4 overflow-hidden">
+                                    <div className="overflow-x-auto pb-4 scrollbar-thin select-none max-w-full">
+                                        <div className="flex gap-2 items-start w-max">
+                                            {/* Day Labels Column */}
+                                            <div className="grid grid-rows-7 gap-[3px] text-[8px] font-extrabold text-neutral-450 dark:text-neutral-500 pt-[18px] h-[105px] pr-1 select-none">
+                                                <div className="h-[12px] flex items-center"></div> {/* Min */}
+                                                <div className="h-[12px] flex items-center">Sen</div>
+                                                <div className="h-[12px] flex items-center"></div> {/* Sel */}
+                                                <div className="h-[12px] flex items-center">Rab</div>
+                                                <div className="h-[12px] flex items-center"></div> {/* Kam */}
+                                                <div className="h-[12px] flex items-center">Jum</div>
+                                                <div className="h-[12px] flex items-center"></div> {/* Sab */}
+                                            </div>
+                                            
+                                            {/* Grid Area with Month Header */}
+                                            <div className="relative">
+                                                {/* Month Labels row */}
+                                                <div className="h-[15px] relative text-[8px] font-extrabold text-neutral-450 dark:text-neutral-500 mb-1 select-none">
+                                                    {monthLabels.map((lbl, idx) => (
+                                                        <div 
+                                                            key={idx} 
+                                                            className="absolute" 
+                                                            style={{ left: `${lbl.colIndex * 15}px` }}
+                                                        >
+                                                            {lbl.text}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                
+                                                {/* Contribution Grid */}
+                                                <div className="grid grid-flow-col grid-rows-7 gap-[3px] h-[105px] w-max">
+                                                    <TooltipProvider delayDuration={50}>
+                                                        {weeks.flat().map((day, idx) => {
+                                                            if (!day) {
+                                                                return <div key={`empty-${idx}`} className="w-3 h-3 bg-transparent rounded-[2px]" />;
+                                                            }
+                                                            
+                                                            const dateStr = formatDateString(day);
+                                                            const count = contributionMap.get(dateStr) || 0;
+                                                            const colorClass = getCellColor(count);
+                                                            
+                                                            // Find notes for this day (filtered)
+                                                            const dayHistories = historiesForGraph.filter(h => h.date === dateStr && (selectedTeacherId === null || h.logged_by === selectedTeacherId));
+                                                            
+                                                            return (
+                                                                <Tooltip key={dateStr}>
+                                                                    <TooltipTrigger asChild>
+                                                                        <div
+                                                                            onClick={() => {
+                                                                                if (count > 0) {
+                                                                                    setSelectedCellDate(dateStr);
+                                                                                    setIsDetailDialogOpen(true);
+                                                                                }
+                                                                            }}
+                                                                            className={`w-3 h-3 rounded-[2px] transition-all duration-200 ${colorClass} ${
+                                                                                count > 0 ? 'cursor-pointer hover:scale-110 hover:ring-1 hover:ring-neutral-450 dark:hover:ring-neutral-400' : 'cursor-default'
+                                                                            }`}
+                                                                        />
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent className="p-2.5 max-w-[280px] bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-[10px]">
+                                                                        <div className="font-extrabold border-b border-neutral-150 dark:border-neutral-800 pb-1 mb-1 text-[9px] text-neutral-400 dark:text-neutral-500">
+                                                                            {day.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                                                                        </div>
+                                                                        <div className="space-y-1">
+                                                                            <p className="font-bold text-neutral-800 dark:text-neutral-200">
+                                                                                {count} {metric === 'notes' ? 'catatan masuk' : 'label koreksi digunakan'}
+                                                                            </p>
+                                                                            {dayHistories.length > 0 && (
+                                                                                <div className="mt-1.5 pt-1.5 border-t border-dashed border-neutral-150 dark:border-neutral-800 text-[8px] leading-relaxed text-neutral-500 dark:text-neutral-400 space-y-1 max-h-[90px] overflow-y-auto">
+                                                                                    {dayHistories.slice(0, 3).map((h, hIdx) => {
+                                                                                        const surahName = chapters.find(c => c.id === h.surah_number)?.name_complex || h.surah_number;
+                                                                                        return (
+                                                                                            <div key={h.id} className="border-b border-neutral-50 dark:border-neutral-950 pb-1 last:border-b-0">
+                                                                                                <strong className="font-extrabold text-neutral-700 dark:text-neutral-300">{h.teacher_name}</strong>: {h.student_name} ({surahName}:{h.verse_number}) <span className="italic">"{h.comments || 'Tanpa keterangan'}"</span>
+                                                                                            </div>
+                                                                                        );
+                                                                                    })}
+                                                                                    {dayHistories.length > 3 && (
+                                                                                        <div className="italic text-[8px] font-extrabold text-emerald-605 dark:text-emerald-450 mt-0.5">
+                                                                                            + {dayHistories.length - 3} catatan lainnya (klik untuk detail)
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            );
+                                                        })}
+                                                    </TooltipProvider>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Legend & Summary info */}
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-[10px] text-neutral-400 dark:text-neutral-500 border-t border-neutral-100 dark:border-neutral-800/80 pt-3">
+                                        <div className="font-semibold text-neutral-500 dark:text-neutral-450">
+                                            {selectedTeacherId === null ? (
+                                                <span className="flex items-center gap-1">
+                                                    <Sparkles className="h-3 w-3 text-amber-500" />
+                                                    Menampilkan kontribusi gabungan semua guru
+                                                </span>
+                                            ) : (
+                                                <span>
+                                                    Menampilkan kontribusi: <strong className="font-bold text-emerald-650 dark:text-emerald-455">{teachers.find(t => t.id === selectedTeacherId)?.name}</strong>
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-1.5 font-bold self-end sm:self-auto select-none">
+                                            <span>Kurang</span>
+                                            <span className="h-3 w-3 rounded-[2px] bg-neutral-100 dark:bg-neutral-800/60" />
+                                            <span className="h-3 w-3 rounded-[2px] bg-emerald-100 dark:bg-emerald-900/30" />
+                                            <span className="h-3 w-3 rounded-[2px] bg-emerald-300 dark:bg-emerald-700/50" />
+                                            <span className="h-3 w-3 rounded-[2px] bg-emerald-500 dark:bg-emerald-500/80" />
+                                            <span className="h-3 w-3 rounded-[2px] bg-emerald-750 dark:bg-emerald-400" />
+                                            <span>Banyak</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {/* Teachers List Card Widget */}
+                                <div className="border-t lg:border-t-0 lg:border-l border-neutral-150 dark:border-neutral-800 pt-5 lg:pt-0 lg:pl-6">
+                                    <h3 className="text-[10px] font-extrabold text-neutral-450 uppercase tracking-widest mb-3 flex items-center justify-between">
+                                        <span>Guru / Kontributor</span>
+                                        <Badge variant="secondary" className="text-[8px] font-extrabold px-1.5 py-0">Real Data</Badge>
+                                    </h3>
+                                    <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1 scrollbar-thin">
+                                        {/* All Teachers selection row */}
+                                        <div
+                                            onClick={() => setSelectedTeacherId(null)}
+                                            className={`flex items-center justify-between p-2 rounded-xl border transition-all duration-200 cursor-pointer select-none ${
+                                                selectedTeacherId === null
+                                                    ? 'border-emerald-500 bg-emerald-50/15 dark:bg-emerald-950/10 shadow-xs'
+                                                    : 'border-neutral-150 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700'
+                                            }`}
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <div className="h-7 w-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-extrabold text-[10px] shrink-0">
+                                                    ALL
+                                                </div>
+                                                <div className="text-left">
+                                                    <h4 className="text-[11px] font-bold text-neutral-850 dark:text-neutral-200">Semua Guru</h4>
+                                                    <p className="text-[8px] text-neutral-400 font-semibold mt-0.5">Gabungan seluruh catatan bimbingan</p>
+                                                </div>
+                                            </div>
+                                            <Badge variant="outline" className="text-[8px] font-bold border-neutral-250 dark:border-neutral-850">
+                                                {teachers.reduce((acc, t) => acc + t.notes_count, 0)} Catatan
+                                            </Badge>
+                                        </div>
+                                        
+                                        {/* Individual Teachers row */}
+                                        {teachers.map((t) => (
+                                            <div
+                                                key={t.id}
+                                                onClick={() => setSelectedTeacherId(t.id)}
+                                                className={`flex items-center justify-between p-2 rounded-xl border transition-all duration-200 cursor-pointer select-none ${
+                                                    selectedTeacherId === t.id
+                                                        ? 'border-emerald-500 bg-emerald-50/15 dark:bg-emerald-950/10 shadow-xs'
+                                                        : 'border-neutral-150 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700'
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <div className="h-7 w-7 rounded-lg bg-neutral-100 dark:bg-neutral-850 text-neutral-705 dark:text-neutral-350 flex items-center justify-center font-extrabold text-[10px] shrink-0">
+                                                        {t.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                                                    </div>
+                                                    <div className="text-left">
+                                                        <h4 className="text-[11px] font-bold text-neutral-850 dark:text-neutral-200">{t.name}</h4>
+                                                        <p className="text-[8px] text-neutral-400 font-semibold mt-0.5 truncate max-w-[110px]">{t.email || t.username}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-col items-end gap-0.5">
+                                                    <Badge variant="outline" className="text-[8px] font-bold border-neutral-250 dark:border-neutral-850">
+                                                        {t.notes_count} Catatan
+                                                    </Badge>
+                                                    <span className="text-[7.5px] text-neutral-400 dark:text-neutral-500 font-extrabold">{t.labels_count} Label</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
                         </CardContent>
-                    </Card>
-
-                    {/* Label Distribution Chart Card */}
-                    <Card className="border-neutral-200/60 dark:border-neutral-800 rounded-2xl bg-white dark:bg-neutral-900 shadow-sm">
-                        <CardHeader className="pb-3 border-b border-neutral-100 dark:border-neutral-800/80">
-                            <CardTitle className="text-xs font-bold text-neutral-400 uppercase tracking-wider flex items-center gap-1.5">
-                                <Tag className="h-4 w-4 text-emerald-600" />
-                                Distribusi Label Hambatan Bacaan
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-4 flex items-center justify-center min-h-[130px]">
-                            <DonutChart data={labelDistribution} />
-                        </CardContent>
-                    </Card>
+                     </Card>
                 </div>
+
+                {/* Dialog to view detail notes of a specific date */}
+                <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
+                    <DialogContent className="max-w-md w-full rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-850 shadow-xl p-5 gap-3">
+                        <DialogHeader>
+                            <DialogTitle className="text-sm font-extrabold text-neutral-850 dark:text-neutral-100 flex items-center gap-2">
+                                <BookOpenCheck className="h-5 w-5 text-emerald-650" />
+                                Detail Catatan Bimbingan Quran
+                            </DialogTitle>
+                            <DialogDescription className="text-[9px] text-neutral-450 dark:text-neutral-500 font-bold uppercase tracking-wider mt-0.5">
+                                {selectedCellDate && new Date(selectedCellDate).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                            </DialogDescription>
+                        </DialogHeader>
+                        
+                        <div className="mt-2 space-y-3 max-h-[300px] overflow-y-auto pr-1 scrollbar-thin">
+                            {historiesForGraph.filter(h => {
+                                const matchesDate = h.date === selectedCellDate;
+                                const matchesTeacher = selectedTeacherId === null || h.logged_by === selectedTeacherId;
+                                return matchesDate && matchesTeacher;
+                            }).map((h) => {
+                                const surahName = chapters.find(c => c.id === h.surah_number)?.name_complex || h.surah_number;
+                                return (
+                                    <div 
+                                        key={h.id} 
+                                        className="p-3 border border-neutral-150 dark:border-neutral-800 rounded-xl bg-neutral-50/20 dark:bg-neutral-950/20 flex flex-col gap-2 hover:border-emerald-600/30 transition duration-150"
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[9px] font-extrabold text-emerald-700 dark:text-emerald-400">
+                                                Surah {surahName} • Ayat {h.verse_number}
+                                            </span>
+                                            <span className="text-[8px] bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 px-2 py-0.5 rounded-full font-bold">
+                                                {h.teacher_name}
+                                            </span>
+                                        </div>
+                                        <div className="text-xs font-semibold text-neutral-850 dark:text-neutral-250">
+                                            Murid: <span className="font-extrabold text-neutral-900 dark:text-neutral-100">{h.student_name}</span>
+                                        </div>
+                                        {h.comments && (
+                                            <p className="text-[10px] text-neutral-600 dark:text-neutral-300 italic bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-850 p-2.5 rounded-lg leading-relaxed">
+                                                "{h.comments}"
+                                            </p>
+                                        )}
+                                        {h.labels && h.labels.length > 0 && (
+                                            <div className="flex flex-wrap gap-1 mt-1">
+                                                {h.labels.map((lbl, lblIdx) => (
+                                                    <Badge 
+                                                        key={lblIdx} 
+                                                        variant="outline" 
+                                                        className="text-[8px] font-bold text-neutral-500 border-neutral-250 dark:border-neutral-800 px-2 py-0"
+                                                    >
+                                                        {lbl}
+                                                    </Badge>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </DialogContent>
+                </Dialog>
 
                 {/* Active Goals Progress Tracker Widget */}
                 <Card className="border-neutral-200/60 dark:border-neutral-800 rounded-2xl bg-white dark:bg-neutral-900 shadow-sm">

@@ -2,7 +2,7 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
-import { BookOpen, ArrowLeft, Check, Users, AlertCircle, AlertTriangle, ChevronDown, Search, Play, Pause, Volume2, Sparkles } from 'lucide-react';
+import { BookOpen, ArrowLeft, Check, Users, AlertCircle, AlertTriangle, ChevronDown, Search, Play, Pause, Volume2, Sparkles, Award } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 interface CustomLabel {
     id: number;
@@ -61,12 +62,26 @@ interface CorrectionLabel {
     color: string;
 }
 
+interface StudentGoal {
+    id: number;
+    student_id: number;
+    classroom_id: number;
+    target_name: string;
+    target_type: 'Takhasus' | 'Tahsin' | 'Tahfizh';
+    target_surah_start: number;
+    target_verse_start: number;
+    target_surah_end: number;
+    target_verse_end: number;
+    status: 'aktif' | 'selesai' | 'dibatalkan';
+}
+
 interface QuranShowProps {
     chapter: Chapter;
     verses: Verse[];
     classrooms: Classroom[];
     correctionLabels: CorrectionLabel[];
     chapters: Chapter[];
+    activeGoals?: StudentGoal[];
 }
 
 interface StudentOption {
@@ -226,7 +241,8 @@ export default function QuranShow({
     verses = [], 
     classrooms = [], 
     correctionLabels = [], 
-    chapters = [] 
+    chapters = [],
+    activeGoals = []
 }: QuranShowProps) {
     const [selectedClassroomId, setSelectedClassroomId] = useState<string>(() => {
         if (typeof window !== 'undefined') {
@@ -322,12 +338,15 @@ export default function QuranShow({
     
     // Modal State
     const [isLogModalOpen, setIsLogModalOpen] = useState(false);
+    const [isChoiceModalOpen, setIsChoiceModalOpen] = useState(false);
+    const [isSetoranModalOpen, setIsSetoranModalOpen] = useState(false);
     const [modalContext, setModalContext] = useState<{
         verseNumber: number;
         wordPosition?: number;
         wordText?: string;
     } | null>(null);
     const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
+    const [setoranMode, setSetoranMode] = useState<'ayat' | 'nilai'>('ayat');
 
     // Form logic
     const { data, setData, post, processing, reset, errors } = useForm({
@@ -340,6 +359,24 @@ export default function QuranShow({
         comments: '',
         labels: [] as string[],
     });
+
+    const setoranForm = useForm({
+        student_goal_id: '',
+        surah_number: chapter.id,
+        verse_number: '' as string | number,
+        grade: '',
+        notes: '',
+    });
+
+    const submitSetoran = (e: React.FormEvent) => {
+        e.preventDefault();
+        setoranForm.post(route('goal-setorans.store'), {
+            onSuccess: () => {
+                setIsSetoranModalOpen(false);
+                setoranForm.reset();
+            },
+        });
+    };
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Al Quran', href: '/quran' },
@@ -418,7 +455,7 @@ export default function QuranShow({
             labels: [],
         });
         
-        setIsLogModalOpen(true);
+        setIsChoiceModalOpen(true);
     };
 
     // Handle double clicking a verse number
@@ -444,7 +481,7 @@ export default function QuranShow({
             labels: [],
         });
 
-        setIsLogModalOpen(true);
+        setIsChoiceModalOpen(true);
     };
 
     const handleLabelChange = (labelName: string, checked: boolean) => {
@@ -952,6 +989,243 @@ export default function QuranShow({
                                     disabled={processing}
                                 >
                                     {processing ? 'Menyimpan...' : 'Simpan Catatan'}
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Choice Modal */}
+            <Dialog open={isChoiceModalOpen} onOpenChange={setIsChoiceModalOpen}>
+                <DialogContent className="max-w-md rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-6">
+                    <DialogHeader>
+                        <DialogTitle className="text-lg font-bold text-neutral-800 dark:text-neutral-100 flex items-center gap-2">
+                            Pilih Tipe Input Evaluasi
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="py-4 space-y-4">
+                        <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                            Pilih apakah Anda ingin memberikan catatan bacaan (evaluasi tajwid/makhraj) atau mencatat setoran hafalan murid.
+                        </p>
+                        <div className="grid grid-cols-2 gap-4">
+                            {/* Catatan Bacaan Button */}
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setIsChoiceModalOpen(false);
+                                    setIsLogModalOpen(true);
+                                }}
+                                className="flex flex-col items-center justify-center p-5 rounded-2xl border border-emerald-100 dark:border-emerald-950/60 bg-emerald-50/20 dark:bg-emerald-950/10 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-all duration-300 text-emerald-800 dark:text-emerald-300 group cursor-pointer animate-in fade-in zoom-in duration-200"
+                            >
+                                <BookOpen className="h-8 w-8 mb-2 group-hover:scale-110 transition duration-300 text-emerald-600 dark:text-emerald-400" />
+                                <span className="font-bold text-xs">Catatan Bacaan</span>
+                                <span className="text-[10px] text-neutral-450 dark:text-neutral-500 mt-1 text-center font-normal">
+                                    Koreksi tajwid, makhraj, & kelancaran
+                                </span>
+                            </button>
+
+                            {/* Setoran Hafalan Button */}
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setIsChoiceModalOpen(false);
+                                    // Prefill setoran form
+                                    const activeGoal = activeGoals.find(
+                                        (g) => g.student_id.toString() === selectedStudentId && g.classroom_id.toString() === selectedClassroomId
+                                    );
+                                    setoranForm.setData({
+                                        student_goal_id: activeGoal ? activeGoal.id.toString() : '',
+                                        surah_number: chapter.id,
+                                        verse_number: modalContext?.verseNumber || 1,
+                                        grade: '',
+                                        notes: '',
+                                    });
+                                    setSetoranMode('ayat'); // Default to Ayat
+                                    setIsSetoranModalOpen(true);
+                                }}
+                                className="flex flex-col items-center justify-center p-5 rounded-2xl border border-amber-100 dark:border-amber-950/60 bg-amber-50/20 dark:bg-amber-950/10 hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-all duration-300 text-amber-800 dark:text-amber-300 group cursor-pointer animate-in fade-in zoom-in duration-200"
+                            >
+                                <Award className="h-8 w-8 mb-2 group-hover:scale-110 transition duration-300 text-amber-600 dark:text-amber-400" />
+                                <span className="font-bold text-xs">Setoran Hafalan</span>
+                                <span className="text-[10px] text-neutral-450 dark:text-neutral-500 mt-1 text-center font-normal">
+                                    Catat target/progres hafalan baru
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Setoran Hafalan Modal */}
+            <Dialog open={isSetoranModalOpen} onOpenChange={setIsSetoranModalOpen}>
+                <DialogContent className="max-w-md rounded-2xl bg-white dark:bg-neutral-900 border p-6 border-amber-400 dark:border-amber-600/50 shadow-[0_0_25px_-5px_rgba(245,158,11,0.25)]">
+                    <DialogHeader>
+                        <DialogTitle className="text-lg font-bold text-neutral-800 dark:text-neutral-100 flex items-center gap-2">
+                            <Award className="h-5 w-5 text-amber-500 shrink-0" />
+                            <span>Catat Setoran Hafalan</span>
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    {/* Student & Surah Info Card */}
+                    <div className="bg-amber-500/5 dark:bg-amber-500/10 p-3.5 rounded-xl border border-amber-500/20 dark:border-amber-500/30 text-xs space-y-2 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-16 h-16 bg-amber-500/5 rounded-full blur-lg pointer-events-none" />
+                        <div className="grid grid-cols-2 gap-2 text-[11px]">
+                            <div>
+                                <span className="text-neutral-400 dark:text-neutral-500 block text-[9px] uppercase tracking-wider font-bold">Murid</span>
+                                <strong className="text-neutral-800 dark:text-neutral-200 font-bold text-xs truncate block">
+                                    {activeClassroom?.students.find(s => s.id.toString() === selectedStudentId)?.name}
+                                </strong>
+                            </div>
+                            <div>
+                                <span className="text-neutral-400 dark:text-neutral-500 block text-[9px] uppercase tracking-wider font-bold">Kelas</span>
+                                <strong className="text-neutral-800 dark:text-neutral-200 font-bold text-xs truncate block">
+                                    {activeClassroom?.name} ({activeClassroom?.type})
+                                </strong>
+                            </div>
+                        </div>
+                        <div className="flex items-center justify-between mt-1 pt-2 border-t border-amber-500/20">
+                            <span className="text-neutral-500 dark:text-neutral-400 text-[10px] font-bold uppercase">Nama Surah</span>
+                            <strong className="text-sm text-amber-650 dark:text-amber-400 font-bold leading-none">
+                                Surah {chapter.name_complex} ({chapter.name_arabic})
+                            </strong>
+                        </div>
+                    </div>
+
+                    {!setoranForm.data.student_goal_id ? (
+                        <div className="space-y-4 py-4 text-center">
+                            <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-xl text-xs text-red-850 dark:text-red-400">
+                                <p className="font-bold">Target Belajar Tidak Ditemukan</p>
+                                <p className="mt-1 opacity-90 text-[10px]">
+                                    Belum ada target belajar aktif untuk murid ini di kelas ini. Silakan buat Target Belajar terlebih dahulu di menu Target Belajar.
+                                </p>
+                            </div>
+                            <DialogFooter className="pt-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setIsSetoranModalOpen(false)}
+                                    className="text-xs border-neutral-300 dark:border-neutral-850 rounded-xl w-full cursor-pointer"
+                                >
+                                    Tutup
+                                </Button>
+                            </DialogFooter>
+                        </div>
+                    ) : (
+                        <form onSubmit={submitSetoran} className="space-y-4 mt-2">
+                            {/* Segmented control for Mode (Mutual Exclusivity) */}
+                            <div className="space-y-1.5">
+                                <Label className="text-xs text-neutral-400">Jenis Setoran Hafalan</Label>
+                                <div className="grid grid-cols-2 p-1 bg-neutral-100 dark:bg-neutral-950 rounded-xl border border-neutral-250/50 dark:border-neutral-850">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setSetoranMode('ayat');
+                                            setoranForm.setData((prev) => ({
+                                                ...prev,
+                                                verse_number: modalContext?.verseNumber || 1,
+                                                grade: '',
+                                            }));
+                                        }}
+                                        className={`py-1.5 text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer ${
+                                            setoranMode === 'ayat'
+                                                ? 'bg-white dark:bg-neutral-850 text-neutral-800 dark:text-white shadow-sm'
+                                                : 'text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300'
+                                        }`}
+                                    >
+                                        Catat Ayat
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setSetoranMode('nilai');
+                                            setoranForm.setData((prev) => ({
+                                                ...prev,
+                                                verse_number: '',
+                                                grade: 'A',
+                                            }));
+                                        }}
+                                        className={`py-1.5 text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer ${
+                                            setoranMode === 'nilai'
+                                                ? 'bg-white dark:bg-neutral-850 text-neutral-800 dark:text-white shadow-sm'
+                                                : 'text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300'
+                                        }`}
+                                    >
+                                        Catat Nilai
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Conditional Inputs */}
+                            {setoranMode === 'ayat' ? (
+                                <div className="space-y-1.5 animate-in fade-in duration-200">
+                                    <Label htmlFor="setoran_verse" className="text-xs text-neutral-400">Sampai Ayat Berapa</Label>
+                                    <Input
+                                        id="setoran_verse"
+                                        type="number"
+                                        min={1}
+                                        max={chapter.verses_count}
+                                        placeholder="Contoh: 12"
+                                        value={setoranForm.data.verse_number}
+                                        onChange={(e) => setoranForm.setData('verse_number', e.target.value)}
+                                        className="bg-white dark:bg-neutral-950 border-neutral-300 dark:border-neutral-850 text-xs rounded-xl focus:ring-amber-500 focus:border-amber-500"
+                                        required
+                                    />
+                                    <span className="text-[10px] text-neutral-450 block">
+                                        Maksimal {chapter.verses_count} ayat untuk Surah {chapter.name_complex}.
+                                    </span>
+                                    {setoranForm.errors.verse_number && <p className="text-xs text-red-500 mt-1">{setoranForm.errors.verse_number}</p>}
+                                </div>
+                            ) : (
+                                <div className="space-y-1.5 animate-in fade-in duration-200">
+                                    <Label htmlFor="setoran_grade" className="text-xs text-neutral-400">Nilai Kelayakan (A - D)</Label>
+                                    <Select
+                                        value={setoranForm.data.grade}
+                                        onValueChange={(val: any) => setoranForm.setData('grade', val)}
+                                    >
+                                        <SelectTrigger id="setoran_grade" className="w-full bg-white dark:bg-neutral-950 border-neutral-300 dark:border-neutral-850 text-xs rounded-xl">
+                                            <SelectValue placeholder="Pilih Nilai" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="A">A (Sangat Lancar)</SelectItem>
+                                            <SelectItem value="B">B (Lancar)</SelectItem>
+                                            <SelectItem value="C">C (Cukup Lancar)</SelectItem>
+                                            <SelectItem value="D">D (Kurang Lancar)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    {setoranForm.errors.grade && <p className="text-xs text-red-500 mt-1">{setoranForm.errors.grade}</p>}
+                                </div>
+                            )}
+
+                            {/* Optional Notes */}
+                            <div className="space-y-1.5">
+                                <Label htmlFor="setoran_notes" className="text-xs text-neutral-400">Catatan Tambahan (Opsional)</Label>
+                                <Textarea
+                                    id="setoran_notes"
+                                    rows={2}
+                                    placeholder="Contoh: Hafalan lancar, makhraj sudah bagus..."
+                                    value={setoranForm.data.notes}
+                                    onChange={(e) => setoranForm.setData('notes', e.target.value)}
+                                    className="bg-white dark:bg-neutral-950 border-neutral-300 dark:border-neutral-850 text-xs rounded-xl focus:ring-amber-500 focus:border-amber-500"
+                                />
+                                {setoranForm.errors.notes && <p className="text-xs text-red-500 mt-1">{setoranForm.errors.notes}</p>}
+                            </div>
+
+                            <DialogFooter className="pt-2 flex gap-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setIsSetoranModalOpen(false)}
+                                    className="text-xs border-neutral-300 dark:border-neutral-850 rounded-xl cursor-pointer"
+                                >
+                                    Batal
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    className="text-xs text-white font-bold px-4 rounded-xl bg-amber-600 hover:bg-amber-700 active:bg-amber-800 shadow-sm shadow-amber-500/10 transition-all duration-200 cursor-pointer"
+                                    disabled={setoranForm.processing}
+                                >
+                                    {setoranForm.processing ? 'Menyimpan...' : 'Simpan Setoran'}
                                 </Button>
                             </DialogFooter>
                         </form>

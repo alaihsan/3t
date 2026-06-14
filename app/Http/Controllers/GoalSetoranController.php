@@ -17,8 +17,8 @@ class GoalSetoranController extends Controller
         $request->validate([
             'student_goal_id' => 'required|exists:student_goals,id',
             'surah_number' => 'required|integer|min:1|max:114',
-            'verse_number' => 'required|integer|min:1',
-            'grade' => 'required|string|in:A,B,C,D',
+            'verse_number' => 'nullable|required_without:grade|integer|min:1',
+            'grade' => 'nullable|required_without:verse_number|string|in:A,B,C,D',
             'notes' => 'nullable|string',
         ]);
 
@@ -30,11 +30,13 @@ class GoalSetoranController extends Controller
         }
 
         // Validate verse number against maximum verses in the selected surah
-        $maxVerses = StudentGoal::$surahVerses[$request->surah_number] ?? 286; // default fallback
-        if ($request->verse_number > $maxVerses) {
-            return redirect()->back()->withErrors([
-                'verse_number' => "Surah tersebut hanya memiliki maksimal {$maxVerses} ayat."
-            ])->withInput();
+        if ($request->filled('verse_number')) {
+            $maxVerses = StudentGoal::$surahVerses[$request->surah_number] ?? 286; // default fallback
+            if ($request->verse_number > $maxVerses) {
+                return redirect()->back()->withErrors([
+                    'verse_number' => "Surah tersebut hanya memiliki maksimal {$maxVerses} ayat."
+                ])->withInput();
+            }
         }
 
         GoalSetoran::create([
