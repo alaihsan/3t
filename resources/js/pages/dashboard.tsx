@@ -432,7 +432,7 @@ export default function Dashboard({
                                         {matchedClassrooms.map((cls) => (
                                             <Link
                                                 key={cls.id}
-                                                href={route('classrooms.index')}
+                                                href={route('classrooms.index') + `?classroom_id=${cls.id}`}
                                                 className="block px-3 py-2 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 rounded-lg text-xs transition flex items-center justify-between"
                                             >
                                                 <span className="font-semibold text-neutral-850 dark:text-neutral-200">{cls.name}</span>

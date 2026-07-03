@@ -57,7 +57,23 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function ClassroomsIndex({ classrooms = [], allStudents = [] }: ClassroomsIndexProps) {
-    const [selectedClass, setSelectedClass] = useState<Classroom | null>(classrooms[0] || null);
+    const [selectedClass, setSelectedClass] = useState<Classroom | null>(() => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            const classIdParam = params.get('classroom_id');
+            if (classIdParam) {
+                const id = parseInt(classIdParam, 10);
+                const found = classrooms.find((c) => c.id === id);
+                if (found) {
+                    // clean up query parameter to keep URL clean
+                    const newUrl = window.location.pathname;
+                    window.history.replaceState({}, '', newUrl);
+                    return found;
+                }
+            }
+        }
+        return classrooms[0] || null;
+    });
     const [activeTab, setActiveTab] = useState<'students' | 'labels' | 'import'>('students');
     
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -220,8 +236,12 @@ export default function ClassroomsIndex({ classrooms = [], allStudents = [] }: C
         setIsDeleteModalOpen(true);
     };
 
+    const expectedConfirmText = deleteConfig
+        ? (deleteConfig.type === 'student' ? deleteConfig.name : 'Hapus')
+        : '';
+
     const executeDelete = () => {
-        if (deleteConfirmText !== 'Hapus' || !deleteConfig) return;
+        if (!deleteConfig || deleteConfirmText !== expectedConfirmText) return;
 
         const cleanup = () => {
             setIsDeleteModalOpen(false);
@@ -710,11 +730,11 @@ export default function ClassroomsIndex({ classrooms = [], allStudents = [] }: C
 
                             <div className="space-y-2">
                                 <Label htmlFor="confirm_text" className="text-xs text-neutral-450">
-                                    Silakan ketik <strong className="text-neutral-800 dark:text-neutral-200">Hapus</strong> di bawah untuk melanjutkan:
+                                    Silakan ketik <strong className="text-neutral-800 dark:text-neutral-200">{expectedConfirmText}</strong> di bawah untuk melanjutkan:
                                 </Label>
                                 <Input
                                     id="confirm_text"
-                                    placeholder="Ketik Hapus..."
+                                    placeholder={`Ketik ${expectedConfirmText}...`}
                                     value={deleteConfirmText}
                                     onChange={(e) => setDeleteConfirmText(e.target.value)}
                                     className="w-full bg-white dark:bg-neutral-950 border-red-300 dark:border-red-900 text-xs rounded-xl focus:ring-red-500 focus:border-red-500 focus:ring-1"
@@ -738,7 +758,7 @@ export default function ClassroomsIndex({ classrooms = [], allStudents = [] }: C
                                     type="button"
                                     onClick={executeDelete}
                                     className="text-xs bg-red-600 hover:bg-red-700 text-white font-bold px-4 rounded-xl disabled:opacity-40 cursor-pointer"
-                                    disabled={deleteConfirmText !== 'Hapus'}
+                                    disabled={deleteConfirmText !== expectedConfirmText}
                                 >
                                     Hapus Permanen
                                 </Button>
