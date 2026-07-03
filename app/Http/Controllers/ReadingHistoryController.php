@@ -81,7 +81,7 @@ class ReadingHistoryController extends Controller
 
         // Verify teacher owns this classroom
         $classroom = Classroom::findOrFail($request->classroom_id);
-        if ($classroom->teacher_id !== auth()->id()) {
+        if ($classroom->teacher_id != auth()->id()) {
             abort(403, 'Aksi tidak diizinkan.');
         }
 
@@ -106,7 +106,7 @@ class ReadingHistoryController extends Controller
     public function destroy(ReadingHistory $readingHistory): RedirectResponse
     {
         // Check if teacher owns the classroom this log belongs to
-        if ($readingHistory->classroom->teacher_id !== auth()->id()) {
+        if ($readingHistory->classroom->teacher_id != auth()->id()) {
             abort(403, 'Aksi tidak diizinkan.');
         }
 

@@ -49,7 +49,7 @@ class SuggestionController extends Controller
     public function update(Request $request, Suggestion $suggestion): RedirectResponse
     {
         // Check if suggestion belongs to current user
-        if ($suggestion->user_id !== auth()->id()) {
+        if ($suggestion->user_id != auth()->id()) {
             abort(403, 'Aksi tidak diizinkan.');
         }
 
@@ -71,7 +71,7 @@ class SuggestionController extends Controller
      */
     public function destroy(Suggestion $suggestion): RedirectResponse
     {
-        if ($suggestion->user_id !== auth()->id()) {
+        if ($suggestion->user_id != auth()->id()) {
             abort(403, 'Aksi tidak diizinkan.');
         }
 

@@ -48,7 +48,7 @@ class CorrectionLabelController extends Controller
      */
     public function update(Request $request, CorrectionLabel $label): RedirectResponse
     {
-        if ($label->teacher_id !== auth()->id()) {
+        if ($label->teacher_id != auth()->id()) {
             abort(403, 'Aksi tidak diizinkan.');
         }
 
@@ -70,7 +70,7 @@ class CorrectionLabelController extends Controller
      */
     public function destroy(CorrectionLabel $label): RedirectResponse
     {
-        if ($label->teacher_id !== auth()->id()) {
+        if ($label->teacher_id != auth()->id()) {
             abort(403, 'Aksi tidak diizinkan.');
         }
 

@@ -72,7 +72,7 @@ class ClassroomController extends Controller
     public function destroy(Classroom $classroom): RedirectResponse
     {
         // Ensure the logged in teacher owns this class
-        if ($classroom->teacher_id !== auth()->id()) {
+        if ($classroom->teacher_id != auth()->id()) {
             abort(403, 'Aksi tidak diizinkan.');
         }
 
@@ -86,7 +86,7 @@ class ClassroomController extends Controller
      */
     public function importStudents(Request $request, Classroom $classroom): RedirectResponse
     {
-        if ($classroom->teacher_id !== auth()->id()) {
+        if ($classroom->teacher_id != auth()->id()) {
             abort(403, 'Aksi tidak diizinkan.');
         }
 
@@ -161,7 +161,7 @@ class ClassroomController extends Controller
      */
     public function addLabel(Request $request, Classroom $classroom): RedirectResponse
     {
-        if ($classroom->teacher_id !== auth()->id()) {
+        if ($classroom->teacher_id != auth()->id()) {
             abort(403, 'Aksi tidak diizinkan.');
         }
 
@@ -183,7 +183,7 @@ class ClassroomController extends Controller
     public function deleteLabel(CustomLabel $label): RedirectResponse
     {
         $classroom = $label->classroom;
-        if ($classroom->teacher_id !== auth()->id()) {
+        if ($classroom->teacher_id != auth()->id()) {
             abort(403, 'Aksi tidak diizinkan.');
         }
 
@@ -197,7 +197,7 @@ class ClassroomController extends Controller
      */
     public function addStudent(Request $request, Classroom $classroom): RedirectResponse
     {
-        if ($classroom->teacher_id !== auth()->id()) {
+        if ($classroom->teacher_id != auth()->id()) {
             abort(403, 'Aksi tidak diizinkan.');
         }
 
@@ -215,7 +215,7 @@ class ClassroomController extends Controller
      */
     public function removeStudent(Classroom $classroom, Student $student): RedirectResponse
     {
-        if ($classroom->teacher_id !== auth()->id()) {
+        if ($classroom->teacher_id != auth()->id()) {
             abort(403, 'Aksi tidak diizinkan.');
         }
 

@@ -25,7 +25,7 @@ class GoalSetoranController extends Controller
         $goal = StudentGoal::findOrFail($request->student_goal_id);
 
         // Ensure teacher owns this goal
-        if ($goal->created_by !== auth()->id()) {
+        if ($goal->created_by != auth()->id()) {
             abort(403, 'Aksi tidak diizinkan.');
         }
 
@@ -57,7 +57,7 @@ class GoalSetoranController extends Controller
     public function destroy(GoalSetoran $setoran): RedirectResponse
     {
         // Ensure teacher owns this goal
-        if ($setoran->studentGoal->created_by !== auth()->id()) {
+        if ($setoran->studentGoal->created_by != auth()->id()) {
             abort(403, 'Aksi tidak diizinkan.');
         }
 

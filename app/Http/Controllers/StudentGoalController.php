@@ -94,7 +94,7 @@ class StudentGoalController extends Controller
 
         // Verify teacher manages the classroom
         $classroom = Classroom::findOrFail($request->classroom_id);
-        if ($classroom->teacher_id !== auth()->id()) {
+        if ($classroom->teacher_id != auth()->id()) {
             abort(403, 'Aksi tidak diizinkan.');
         }
 
@@ -119,7 +119,7 @@ class StudentGoalController extends Controller
      */
     public function update(Request $request, StudentGoal $goal): RedirectResponse
     {
-        if ($goal->created_by !== auth()->id()) {
+        if ($goal->created_by != auth()->id()) {
             abort(403, 'Aksi tidak diizinkan.');
         }
 
@@ -139,7 +139,7 @@ class StudentGoalController extends Controller
      */
     public function destroy(StudentGoal $goal): RedirectResponse
     {
-        if ($goal->created_by !== auth()->id()) {
+        if ($goal->created_by != auth()->id()) {
             abort(403, 'Aksi tidak diizinkan.');
         }
 
