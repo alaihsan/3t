@@ -17,6 +17,9 @@ Route::get('/', function () {
     return redirect()->route('login');
 })->name('home');
 
+// External API for Score Reports (Rekap Nilai)
+Route::match(['get', 'options'], 'api/rekap-nilai', [\App\Http\Controllers\ScoreReportController::class, 'apiReport'])->name('api.score-reports');
+
 Route::middleware(['auth'])->group(function () {
     Route::get('dashboard', function () {
         $teacherId = auth()->id();
