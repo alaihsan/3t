@@ -29,13 +29,7 @@ export default function Login() {
         });
     };
 
-    const fillCredentials = (user: string) => {
-        setData((prev) => ({
-            ...prev,
-            username: user,
-            password: 'passwd',
-        }));
-    };
+
 
     return (
         <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-emerald-950 px-4 py-12 sm:px-6 lg:px-8">
@@ -157,32 +151,7 @@ export default function Login() {
                         </Button>
                     </form>
 
-                    {/* Quick Credentials Evaluator Panel */}
-                    <div className="mt-8 border-t border-emerald-800/80 pt-6">
-                        <p className="text-center text-xs font-semibold uppercase tracking-wider text-emerald-400">
-                            Pilih Akun Guru (Klik untuk Isi otomatis):
-                        </p>
-                        <div className="mt-3 grid grid-cols-3 gap-2">
-                            {['syawqi', 'hafiz', 'laila'].map((user) => {
-                                const isActive = data.username === user;
-                                return (
-                                    <button
-                                        key={user}
-                                        type="button"
-                                        onClick={() => fillCredentials(user)}
-                                        className={`flex flex-col items-center justify-center rounded-xl border p-2.5 text-center transition duration-200 ${
-                                            isActive
-                                                ? 'bg-amber-500/25 border-amber-500 text-amber-300'
-                                                : 'bg-emerald-950/40 border-emerald-800 text-emerald-300 hover:bg-emerald-950/80 hover:border-emerald-700'
-                                        }`}
-                                    >
-                                        <span className="text-xs font-semibold capitalize">{user}</span>
-                                        <span className="mt-0.5 text-[9px] opacity-65">passwd</span>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
+
                 </div>
 
                 {/* Footer text */}
